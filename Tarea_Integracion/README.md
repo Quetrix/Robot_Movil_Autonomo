@@ -7,6 +7,8 @@
 | ESP32 de locomoción | [`Avance_1_Locomocion/locomocion_esp32_ir_frontal`](../Avance_1_Locomocion/locomocion_esp32_ir_frontal/) (variante sin IR + KY-032 frontal en GPIO34) | USB, 115200 baud |
 | ESP32 del cabezal | [`Avance_2_Percepcion/Percepcion_MG996_180`](../Avance_2_Percepcion/Percepcion_MG996_180/) (sin cambios, fijo en `CENTER`) | WiFi propio `Percepcion-ESP32` → `http://192.168.4.1/data`. Respaldo: USB con `DETAIL` |
 
+**Si no sueles usar terminal, GitHub o SSH, sigue [`GUIA_PASO_A_PASO.md`](GUIA_PASO_A_PASO.md):** cada comando trae dónde se ejecuta y qué debes ver. Este README es la referencia técnica.
+
 **Resumen si ya está todo armado y configurado:** robot levantado → encender cabezal → encender Pi → laptop a la red `Percepcion-ESP32` → `ssh fede@192.168.4.200` → `cd ~/Robot_Movil_Autonomo/Tarea_Integracion && python3 braitenberg.py --loco /dev/serial/by-id/<locomocion>` → probar en banco → bajar al suelo → teclas `1`–`4`, `0`/espacio para esperar, `q` para salir.
 
 ## Contenido
@@ -17,6 +19,9 @@
 | `simulador_sin_robot.py` | Imita al ESP32 de locomoción (puerto serial virtual), al cabezal (HTTP y serial) y un mundo 2D con obstáculos. Sirve para ensayar sin el robot |
 | `prueba_simulada.py` | Corre `braitenberg.py` contra el simulador en 14 escenarios y revisa el resultado (~40 s) |
 | `guion_video.md` | Guion del video de entrega |
+| `GUIA_PASO_A_PASO.md` | Guía detallada: subir el repo, conexiones y comandos exactos de la Pi con verificación |
+| `revisar.sh` | Diagnóstico de la Pi (dialout, pyserial, código, ESP32, WiFi del cabezal, `/data`) |
+| `correr.sh` | Arranca `braitenberg.py` buscando solo el puerto y guarda `corrida_HHMMSS.csv` |
 
 ---
 

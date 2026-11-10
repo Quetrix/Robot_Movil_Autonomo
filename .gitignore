@@ -7,3 +7,4 @@ build/
 Thumbs.db
 __pycache__/
 *.pyc
+corrida_*.csv
