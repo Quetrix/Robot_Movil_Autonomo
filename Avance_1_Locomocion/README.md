@@ -6,7 +6,8 @@ Firmware del ESP32 que controla las 4 ruedas Mecanum: lectura de encoders en cua
 
 | Ruta | Qué es |
 |---|---|
-| `locomocion_esp32_sin_IR/locomocion_esp32_sin_IR.ino` | **Versión de prueba actual.** Igual a la principal, pero sin los KY-032, con el pinout del cableado actual y con modos de movimiento continuo, temporizado y mantener tecla. Ver "Variante sin IR". |
+| `locomocion_esp32_ir_frontal/locomocion_esp32_ir_frontal.ino` | **Versión actual (Tarea 8).** Copia de la variante sin IR más un KY-032 frontal en GPIO34 que anula el avance. Ver "Variante IR frontal". |
+| `locomocion_esp32_sin_IR/locomocion_esp32_sin_IR.ino` | Variante probada en el robot: igual a la principal, pero sin los KY-032, con el pinout del cableado actual y con modos de movimiento continuo, temporizado y mantener tecla. Ver "Variante sin IR". |
 | `locomocion_esp32_sin_IR/teleop_locomocion.py` | Programa para la PC: mover el robot manteniendo teclas (WASD + QE) o enviar comandos por consola. |
 | `locomocion_esp32/locomocion_esp32.ino` | Reconstrucción del firmware que tenía el ESP32 en el Avance 1 (ver "Origen y verificación"). Usa el pinout del Avance 1, no el cableado actual. |
 | `firmware_respaldo/respaldo_robot.bin` | Volcado completo (4 MB) de la flash del ESP32 usado en el Avance 1. Es la referencia exacta. |
@@ -77,18 +78,20 @@ VMS de ambos drivers a la batería de motores; el ESP32 se alimenta aparte (USB)
 
 ### Seguridad, interfaz y LED
 
-| Señal | GPIO | Configuración |
-|---|---|---|
-| Botón arranque / pausa | GPIO12 | `INPUT_PULLUP`, botón a GND, activo en LOW, debounce de 80 ms |
-| IR discreto frontal (KY-032, OUT) | GPIO0 | Solo en `locomocion_esp32`. `INPUT`, interrupción `FALLING`; LOW = obstáculo. Libre en la variante sin IR |
-| IR discreto trasero (KY-032, OUT) | GPIO34 | Solo en `locomocion_esp32`. `INPUT`, interrupción `FALLING`; LOW = obstáculo. Libre en la variante sin IR |
-| LED de estado (LED integrado) | GPIO2 | Salida. HIGH con ambos sensores libres, LOW si alguno detecta |
-| Serial (USB) | GPIO1 / GPIO3 | UART0 a 115200 baud |
+| Señal | `ir_frontal` (actual) | `sin_IR` | `locomocion_esp32` (Avance 1) | Configuración |
+|---|---|---|---|---|
+| Botón arranque / pausa | GPIO12 | GPIO12 | GPIO12 | `INPUT_PULLUP`, botón a GND, activo en LOW, debounce de 80 ms |
+| IR discreto frontal (KY-032, OUT) | **GPIO34** | — | GPIO0 | `INPUT` (sin pull-up), LOW = obstáculo. En `ir_frontal`: interrupción `CHANGE` + debounce (20 ms LOW para confirmar, 60 ms HIGH para liberar), VCC del módulo a 3.3 V |
+| IR discreto trasero (KY-032, OUT) | — | — | GPIO34 | Solo en `locomocion_esp32`. `INPUT`, interrupción `FALLING`; LOW = obstáculo |
+| LED de estado (LED integrado) | GPIO2 | GPIO2 | GPIO2 | En `sin_IR` e `ir_frontal`: encendido = detenido, apagado = en marcha. En `locomocion_esp32`: HIGH con sensores libres |
+| Serial (USB) | GPIO1 / GPIO3 | GPIO1 / GPIO3 | GPIO1 / GPIO3 | UART0 a 115200 baud |
+
+Conexión del KY-032 frontal en `ir_frontal`: `GND` → GND, `+` → **3.3 V**, `OUT` → GPIO34, `EN` sin conectar (el jumper EN del módulo debe estar puesto). El LED del módulo se enciende con obstáculo. El alcance se ajusta con los dos potenciómetros.
 
 ### Restricciones eléctricas del pinout
 
-- **GPIO libres.** Con los KY-032 no queda ninguno además de UART0 (USB). En la variante sin IR quedan GPIO0 (strapping: debe estar en HIGH al arrancar) y GPIO34 (solo entrada, sin pull-up). La conexión con la Raspberry Pi va por el USB.
-- Con la señal de un KY-032 desconectada en `locomocion_esp32`, GPIO34 queda flotando, se lee como obstáculo y bloquea todo movimiento.
+- **GPIO libres.** Con los dos KY-032 (`locomocion_esp32`) no queda ninguno además de UART0 (USB). En la variante sin IR quedan GPIO0 (strapping: debe estar en HIGH al arrancar) y GPIO34 (solo entrada, sin pull-up). En `ir_frontal` solo queda GPIO0, que no conviene usar por ser pin de arranque. La conexión con la Raspberry Pi va por el USB.
+- Con la señal de un KY-032 desconectada, GPIO34 queda flotando: puede leerse como obstáculo (en `ir_frontal` bloquea el avance) o como libre (no protege). Revisar el mensaje `# IR FRENTE` al arrancar.
 - **Strapping pins:** GPIO0 tiene que estar en HIGH al energizar; si el sensor frontal detecta algo en ese momento, el ESP32 entra en modo descarga. GPIO12 tiene que estar en LOW al arrancar; el botón va a GND, así que no hay problema, pero no le agreguen un pull-up externo. GPIO2 y GPIO15 también son strapping pins y funcionan con el uso actual.
 - GPIO34, 35, 36 y 39 son solo entrada y no tienen pull-up interno. Los encoders y el KY-032 deben entregar salida activa o tener pull-up en el módulo.
 
@@ -216,6 +219,23 @@ En modo teclas, mientras haya teclas presionadas envía `H` a 10 Hz y al soltarl
 ### Compilar
 
 Arduino IDE o arduino-cli con el core **esp32 3.x** (probado con 3.3.12), placa **ESP32 Dev Module**. En PlatformIO usar la plataforma pioarduino (`platform = https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip`), porque el código usa `ledcAttach()`.
+
+## Variante IR frontal (`locomocion_esp32_ir_frontal`) — versión actual
+
+Copia exacta de `locomocion_esp32_sin_IR` (pines, signos, CPR, ganancias, feedforward, comandos, LED y secuencia sin cambios) con un solo agregado: el KY-032 frontal en GPIO34.
+
+- **Detección.** La interrupción `CHANGE` de GPIO34 solo marca el flanco; `loop()` confirma el estado cuando la señal queda estable: 20 ms en LOW → `# IR FRENTE: OBSTACULO`, 60 ms en HIGH → `# IR FRENTE: LIBRE`. Al arrancar imprime el estado inicial.
+- **Mientras hay obstáculo se anula solo el avance (vy > 0).**
+  - `V` y `H`: se usa `vy = 0` y se conservan `vx` y `omega`. Si el resultado es cero, frena con el PI (y un `V ... ms` no programa la duración).
+  - `W`: se rechaza; si había otro movimiento, frena.
+  - `S`, `A`, `D`, `R`, `vy < 0`, `vx` y `omega` funcionan normal.
+  - Se imprime `# IR FRENTE: AVANCE BLOQUEADO` una vez por cada detección.
+- **Si ya iba avanzando** cuando aparece el obstáculo, al movimiento en curso se le resta su componente de avance. En la cinemática `vy` entra igual en las 4 ruedas y `vx` y `ω` suman cero, así que la parte de avance es el promedio de las 4 referencias. Si solo avanzaba, hace el frenado controlado del PI (650 RPM/s); si además tenía parte lateral o de giro, sigue solo con esa parte (`# IR FRENTE: AVANCE ANULADO, SIGUE LATERAL/GIRO`).
+- **Al quedar libre no reanuda nada por sí solo.** El siguiente comando con avance sí se aplica; con `H` a 10 Hz eso pasa en ≤ 100 ms.
+- La **secuencia del botón no tiene esta protección** (no se usa en la Tarea 8).
+- Telemetría: `ms,FL_ref,FR_ref,RL_ref,RR_ref,FL_rpm,FR_rpm,RL_rpm,RR_rpm,FL_pwm,FR_pwm,RL_pwm,RR_pwm,theta_deg,irF,seq,pausa`, con `irF` = 1 si hay obstáculo confirmado.
+
+La lógica del IR se probó en la PC compilando el `.ino` con g++ contra un stub de Arduino (`pruebas_pc/`, 26 casos: debounce, frenado, recorte, permisos de S/A/D/R, timeout de `H`, CSV): `cd pruebas_pc && g++ -std=gnu++17 -I. -x c++ test_ir_frontal.cpp -o test_ir && ./test_ir`. Falta compilarlo con el core esp32 3.x en el Arduino IDE y probarlo en el robot.
 
 ## Pendientes para la entrega final
 
