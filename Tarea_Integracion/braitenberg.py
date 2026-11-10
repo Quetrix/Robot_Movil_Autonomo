@@ -4,7 +4,7 @@ MT9005 - Tarea 8: comportamientos de Braitenberg (Raspberry Pi 5).
 
 Arquitectura base (sirve para el proyecto final):
 
-    Percepcion ESP32 --USB--> [Pi: sensores -> maquina de estados -> comportamiento] --USB--> Locomocion ESP32
+    Percepcion ESP32 --WiFi/USB--> [Pi: sensores -> maquina de estados -> comportamiento] --USB--> Locomocion ESP32
          DETAIL (IR_I, IR_D, TF)                                                          "V vx vy omega"
 
 - Percepcion: cabezal fijo al frente (CENTER). Los dos Sharp (+60 deg izq, -60 deg der) son
@@ -20,7 +20,9 @@ Teclas (en la terminal SSH):
     0 / espacio = ESPERA (detener)    q = salir
 NO presione el boton fisico: en el firmware del Avance 1 inicia la secuencia de demo.
 
-Uso:
+Uso (cabezal inalambrico: la Pi conectada a la red WiFi 'Percepcion-ESP32'):
+    python3 braitenberg.py --loco /dev/serial/by-id/<locomocion>
+Uso (cabezal por USB):
     python3 braitenberg.py --loco /dev/serial/by-id/<locomocion> --perc /dev/serial/by-id/<percepcion>
 """
 import argparse
@@ -105,6 +107,53 @@ class Percepcion:
                     self.d[c[0]] = a_float(c[3])   # d_sensor_mm
                     if c[0] == "TF":
                         self.t_dato = time.monotonic()
+
+    def fresco(self):
+        return time.monotonic() - self.t_dato < T_TIMEOUT_S
+
+
+class PercepcionWiFi:
+    """Misma interfaz que Percepcion, pero por el WiFi propio del cabezal.
+
+    La Pi se conecta a la red 'Percepcion-ESP32' y consulta http://192.168.4.1/data.
+    Las consultas HTTP corren en un hilo aparte para no frenar el lazo principal.
+    """
+
+    def __init__(self, url):
+        self.url = url.rstrip("/")
+        self.d = {"IR_I": None, "IR_D": None, "TF": None}
+        self.t_dato = 0.0
+
+    def iniciar(self):
+        import threading
+        import urllib.parse
+        import urllib.request
+        self._req = urllib.request
+        datos = urllib.parse.urlencode({"cmd": "CENTER"}).encode()
+        try:
+            urllib.request.urlopen(self.url + "/action", data=datos, timeout=3).read()
+        except Exception as e:
+            print(f"Aviso: no se pudo enviar CENTER ({e})")
+        threading.Thread(target=self._hilo, daemon=True).start()
+
+    def _hilo(self):
+        import json
+        while True:
+            t0 = time.monotonic()
+            try:
+                j = json.loads(self._req.urlopen(self.url + "/data", timeout=1).read())
+                m = [s["mm"] if s["valid"] else None for s in j["samples"]]
+                self.d = {"IR_I": m[0], "IR_D": m[1], "TF": m[2]}
+                self.t_dato = time.monotonic()
+            except Exception:
+                pass                           # sin dato: fresco() vence y la FSM pasa a PARO
+            time.sleep(max(0.0, T_SENSOR_MS / 1000 - (time.monotonic() - t0)))
+
+    def pedir(self):
+        pass
+
+    def leer(self):
+        pass
 
     def fresco(self):
         return time.monotonic() - self.t_dato < T_TIMEOUT_S
@@ -226,10 +275,12 @@ def tecla():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--loco", default="/dev/ttyUSB0")
-    ap.add_argument("--perc", default="/dev/ttyUSB1")
+    ap.add_argument("--perc", default="http://192.168.4.1",
+                    help="puerto serial del ESP32 de percepcion, o URL http:// de su WiFi")
     a = ap.parse_args()
 
-    loco, perc = Locomocion(a.loco), Percepcion(a.perc)
+    perc = PercepcionWiFi(a.perc) if a.perc.startswith("http") else Percepcion(a.perc)
+    loco = Locomocion(a.loco)
     loco.iniciar()
     perc.iniciar()
     robot = Robot(loco, perc)

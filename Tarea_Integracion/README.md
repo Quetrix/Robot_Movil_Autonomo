@@ -4,9 +4,14 @@
 
 ## Conexión y ejecución
 
-1. Conectar los dos ESP32 por USB a la Pi y ver sus nombres: `ls /dev/serial/by-id/`.
-2. `sudo apt install -y python3-serial`
-3. `python3 braitenberg.py --loco /dev/serial/by-id/<locomocion> --perc /dev/serial/by-id/<percepcion>`
+1. Conectar el ESP32 de locomoción por USB a la Pi y ver su nombre con `ls /dev/serial/by-id/`. Instalar pyserial: `sudo apt install -y python3-serial`.
+2. **Cabezal inalámbrico (configuración actual).** La Pi se conecta directamente a la red WiFi que crea el ESP32 del cabezal; no hace falta un tercer ESP32.
+   ```bash
+   sudo nmcli dev wifi connect "Percepcion-ESP32" password "percepcion26"
+   ```
+   Esto corta la sesión SSH si entraste por WiFi. Conecta también la laptop a `Percepcion-ESP32` y vuelve a entrar con `ssh fede@robo-pi-5.local`; si `.local` no resuelve, usa la IP 192.168.4.x que asigna el ESP32. Para volver a la red normal: `sudo nmcli con up "<nombre de tu red>"`.
+3. `python3 braitenberg.py --loco /dev/serial/by-id/<locomocion>` (por defecto lee `http://192.168.4.1/data`).
+   Si el cabezal se conecta por USB: `--perc /dev/serial/by-id/<percepcion>`.
 4. Teclas: `1` Miedo, `2` Agresión, `3` Amor, `4` Explorador, `0`/espacio Espera, `q` salir (manda `X`).
 
 **No presionar el botón físico:** en el firmware del Avance 1 arranca la secuencia de demostración y bloquea el comando `V`. Para detener, usar `0` o `q`; los KY-032 siguen actuando como paro.
@@ -14,7 +19,7 @@
 ## Arquitectura
 
 ```
-ESP32 percepción ──DETAIL (IR_I, IR_D, TF)──▶  Pi: Percepcion → Robot (máquina de estados) → comportamiento
+ESP32 cabezal ──WiFi /data o USB DETAIL──▶  Pi: Percepcion → Robot (máquina de estados) → comportamiento
                                                                                     │ V 0 v ω
                                                               ESP32 locomoción ◀────┘  (PI por rueda, paro KY-032)
 ```
