@@ -34,6 +34,7 @@ Uso:
   python3 braitenberg.py --loco /dev/serial/by-id/<locomocion> --perc /dev/serial/by-id/<cabezal>
   --log corrida.csv     guarda un registro a 10 Hz
   --sin-pantalla        imprime lineas en vez del panel (util si la terminal no soporta ANSI)
+  --invertir-sharp      intercambia los Sharp izquierdo y derecho
 """
 import argparse
 import json
@@ -70,6 +71,7 @@ T_SENSOR_MS = 200      # periodo de consulta al cabezal
 T_CMD_MS = 100         # periodo de envio de H (10 Hz; el firmware frena si pasan 300 ms)
 T_PANTALLA_MS = 200    # refresco del panel
 T_TIMEOUT_S = 1.0      # sin capturas nuevas -> PARO
+INVERTIR_SHARP = False # --invertir-sharp: intercambia izq/der si estan cableados al reves
 
 SENSORES = ("IR_I", "IR_D", "TF")
 
@@ -108,6 +110,15 @@ def muy_cerca(sensor, estado, volts=None):
     if sensor == "TF":
         return estado == "TF_menos_de_20cm_no_fiable"
     return estado == "IR_fuera_de_rango" and volts is not None and volts >= IR_V_MUY_CERCA
+
+
+def orientar(d, cerca):
+    """Aplica --invertir-sharp a una lectura (copias)."""
+    d, cerca = dict(d), dict(cerca)
+    if INVERTIR_SHARP:
+        d["IR_I"], d["IR_D"] = d["IR_D"], d["IR_I"]
+        cerca["IR_I"], cerca["IR_D"] = cerca["IR_D"], cerca["IR_I"]
+    return d, cerca
 
 
 def a_float(texto):
@@ -196,7 +207,7 @@ class PercepcionWiFi:
 
     def lectura(self):
         with self._lock:
-            return dict(self.d), dict(self.cerca)
+            return orientar(self.d, self.cerca)
 
     def fresco(self):
         return time.monotonic() - self.t_dato < T_TIMEOUT_S
@@ -274,7 +285,7 @@ class PercepcionSerial:
             self.t_dato = time.monotonic()
 
     def lectura(self):
-        return dict(self.d), dict(self.cerca)
+        return orientar(self.d, self.cerca)
 
     def fresco(self):
         return time.monotonic() - self.t_dato < T_TIMEOUT_S
@@ -564,7 +575,11 @@ def main():
                     help="URL http:// del WiFi del cabezal, o puerto serial si va por USB")
     ap.add_argument("--log", help="archivo CSV de registro")
     ap.add_argument("--sin-pantalla", action="store_true", help="lineas simples en vez del panel")
+    ap.add_argument("--invertir-sharp", action="store_true",
+                    help="intercambia Sharp izquierdo y derecho (si la prueba con la mano sale al reves)")
     a = ap.parse_args()
+    global INVERTIR_SHARP
+    INVERTIR_SHARP = a.invertir_sharp
 
     signal.signal(signal.SIGTERM, salir_por_senal)
     signal.signal(signal.SIGHUP, salir_por_senal)

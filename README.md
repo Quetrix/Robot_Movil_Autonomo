@@ -19,9 +19,9 @@ El robot holonómico con ruedas Mecanum debe ir desde el aula de origen hasta el
 
 | Carpeta | Contenido | Estado |
 |---|---|---|
-| [`Avance_1_Locomocion/`](Avance_1_Locomocion/) | Firmware de locomoción (ESP32), binario de respaldo e historial de versiones | Presentado el 6 oct |
+| [`Avance_1_Locomocion/`](Avance_1_Locomocion/) | Firmware de locomoción (ESP32): versión actual `locomocion_esp32_ir_frontal`, variantes anteriores, binario de respaldo e historial | Presentado el 6 oct |
 | [`Avance_2_Percepcion/`](Avance_2_Percepcion/) | Firmware de percepción (ESP32) | Presentado el 27 oct |
-| [`Tarea_Integracion/`](Tarea_Integracion/) | Ambos módulos funcionando juntos | En curso |
+| [`Tarea_Integracion/`](Tarea_Integracion/) | Tarea 8: comportamientos de Braitenberg en la Raspberry Pi con ambos módulos; guía de armado, conexión y puesta en marcha | Entrega 10 nov |
 | `Documentos/Enunciados/` | Enunciado del proyecto, guías de los módulos y lista de materiales | |
 | `Documentos/Datasheets/` | ESP32-WROOM-32, expansion board, Sharp GP2Y0A21, KY-032, TF-Luna (datasheet y manual), HC-SR04 | |
 

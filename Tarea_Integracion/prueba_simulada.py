@@ -95,6 +95,7 @@ caso("3b_arena", "arena", [(4.0, "4"), (34.0, "0")], 35, 8107)
 caso("3b_izq_serial", "izq", [(5.5, "4"), (11.0, "0")], 12, 8108, modo_perc="serial")
 caso("sin_perc", "izq", [(4.0, "4")], 7, 8109, modo_perc="http://127.0.0.1:1")
 caso("kill", "arena", [(4.0, "4"), (6.0, "KILL")], 8, 8110)
+caso("2a_izq_inv", "izq", [(4.0, "1"), (9.0, "0")], 10, 8114, extra_bt=("--invertir-sharp",))
 caso("fw_sin_ir", "izq", [], 5, 8111, extra_sim=("--sin-ir",))
 
 res = {}
@@ -146,6 +147,8 @@ mov = [r for r in f if 5.0 < float(r["t"]) < 6.0 and abs(float(r["vy_cmd"])) + a
 quieto = [r for r in f if float(r["t"]) > 6.5]
 check(len(mov) > 0 and all(abs(float(r["vy_cmd"])) + abs(float(r["w_cmd"])) < 1e-3 for r in quieto),
       "script muerto con SIGKILL: el robot frena solo por el timeout de H")
+f, s, fin, _ = res["2a_izq_inv"]
+check(theta_en(f, 9) > 100, f"--invertir-sharp intercambia los lados (2a gira al reves: theta {theta_en(f, 9):.0f})")
 f, s, fin, _ = res["fw_sin_ir"]
 check("no tiene el firmware ir_frontal" in s, "detecta firmware sin IR frontal")
 
