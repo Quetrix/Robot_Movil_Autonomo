@@ -215,7 +215,12 @@ Crear el perfil no corta la conexión. Por la prioridad, si el cabezal ya está 
 2. Encender el **cabezal** (su power bank) y esperar unos 5 s a que aparezca la red `Percepcion-ESP32`.
 3. Pasar la Pi a la red del cabezal:
    - Si la Pi está apagada: enciéndela y espera unos 40 s; se conecta sola por la prioridad.
-   - Si ya está encendida y conectada por SSH en la red normal: `sudo -v && sudo nohup nmcli con up cabezal >/dev/null 2>&1 &`. El SSH se corta: es lo esperado. Ahí la Pi pierde internet y Pi Connect.
+   - Si ya está encendida y conectada por SSH en la red normal (dos líneas separadas; la primera pide la clave de sudo si hace falta):
+     ```bash
+     sudo -v
+     sudo nohup nmcli con up cabezal >/dev/null 2>&1 &
+     ```
+     El SSH se corta: es lo esperado. Desde ahí la Pi no tiene internet ni Pi Connect.
 4. Conectar la **laptop** a `Percepcion-ESP32`. Windows dirá "sin internet": es normal. Si Windows se cambia solo a otra red, desactiva "conectar automáticamente" en esa otra.
 5. Probar el enlace y entrar:
    ```bash
