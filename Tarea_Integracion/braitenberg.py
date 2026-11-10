@@ -18,7 +18,8 @@ Seguridad:
   - Se envia "H" (no "V") a 10 Hz: si el script, la Pi o el USB fallan, el ESP32 frena solo
     a los 300 ms.
   - Sin capturas nuevas de percepcion durante 1 s -> estado PARO.
-  - TF-Luna < 250 mm (o "menos de 20 cm") -> se anula el avance (v <= 0); se libera > 350 mm.
+  - Avance limitado a 0.25 m/s y, entre 600 y 300 mm del TF-Luna, reducido linealmente a 0.
+  - TF-Luna < 300 mm (o "menos de 20 cm") -> se anula el avance (v <= 0); se libera > 400 mm.
     En 2a y 3b, ademas, gira en el lugar hacia el lado mas libre: los Sharp miran a +-60 grados
     y no ven lo que esta justo enfrente.
   - IR frontal KY-032: el firmware anula el avance por su cuenta; aqui se muestra y se trata
@@ -64,9 +65,13 @@ V0 = 0.20              # velocidad base de cada rueda virtual [m/s] (~80 RPM)
 K_EXC = 0.15           # ganancia excitatoria (2a, 2b) [m/s por unidad de estimulo]
 B_VIRTUAL = 0.20       # trocha virtual [m]: mayor = giros mas suaves
 V_PARO = 0.04          # si ambas ruedas virtuales quedan por debajo, se frena
-TF_PARO_MM = 250.0     # TF por debajo de esto: se anula el avance
-TF_LIBRE_MM = 350.0    # el bloqueo por TF se libera por encima de esto (histeresis)
+TF_PARO_MM = 300.0     # TF por debajo de esto: se anula el avance
+TF_LIBRE_MM = 400.0    # el bloqueo por TF se libera por encima de esto (histeresis)
+TF_LENTO_MM = 600.0    # entre TF_PARO y esto, el avance se limita linealmente hasta V_MAX
+V_MAX = 0.25           # tope de velocidad hacia adelante [m/s] (2a/2b pueden pedir hasta 0.35)
 W_GIRO_BLOQUEO = 1.0   # giro en el lugar cuando 2a/3b quedan bloqueados al frente [rad/s]
+T_GIRO_MIN_S = 1.2     # el giro dura al menos esto (~70 grados): si no, al salir el obstaculo
+                       # del rayo del TF el robot avanza y lo roza con la esquina
 T_SENSOR_MS = 200      # periodo de consulta al cabezal
 T_CMD_MS = 100         # periodo de envio de H (10 Hz; el firmware frena si pasan 300 ms)
 T_PANTALLA_MS = 200    # refresco del panel
@@ -399,6 +404,7 @@ class Robot:
         self.tf_bloqueo = False
         self.dir_bloqueo = None
         self.ultimo_giro = 1.0
+        self.t_giro_hasta = 0.0
         self.s_mem = [0.0, 0.0]
         self.t_paso = time.monotonic()
         self.t = dict(sI=0.0, sD=0.0, vI=0.0, vD=0.0, v=0.0, w=0.0, seguridad="")
@@ -417,6 +423,7 @@ class Robot:
         self.eventos.agregar(f"{self.estado} -> {nuevo} {motivo}")
         self.estado = nuevo
         self.dir_bloqueo = None
+        self.t_giro_hasta = 0.0
         if nuevo in ("ESPERA", "PARO"):
             self.loco.frenar()
 
@@ -451,9 +458,25 @@ class Robot:
             v = w = 0.0
             seguridad = "ruedas virtuales < 0.04 m/s: frena"
 
-        bloqueo = self.tf_bloqueo or self.loco.ir_frente
-        if bloqueo:
-            motivo = "TF < 250 mm" if self.tf_bloqueo else "IR frente"
+        # Tope de velocidad y limite por distancia al frente (TF): con ~0.5 s de latencia
+        # total, a 0.3 m/s el robot recorre ~15 cm antes de reaccionar.
+        if v > V_MAX:
+            v = V_MAX
+        limitado = False
+        if d["TF"] is not None and v > 0:
+            v_lim = V_MAX * min(1.0, max(0.0, (d["TF"] - TF_PARO_MM) / (TF_LENTO_MM - TF_PARO_MM)))
+            if v > v_lim:
+                v = v_lim
+                seguridad = f"TF {d['TF']:.0f} mm: avance limitado"
+                limitado = v_lim < V_PARO          # tan lento que no avanza: tratar como bloqueo
+
+        bloqueo = self.tf_bloqueo or self.loco.ir_frente or limitado
+        girando = self.estado in GIRO_SI_BLOQUEADO and time.monotonic() < self.t_giro_hasta
+        if girando and not bloqueo:
+            v, w = 0.0, self.dir_bloqueo * W_GIRO_BLOQUEO     # completar el giro minimo
+            seguridad = f"terminando giro {'izq' if w > 0 else 'der'}"
+        elif bloqueo:
+            motivo = "IR frente" if self.loco.ir_frente else f"TF < {TF_PARO_MM + 50 * limitado:.0f} mm"
             if v > 0:
                 v = 0.0
                 seguridad = f"{motivo}: avance anulado"
@@ -466,6 +489,8 @@ class Robot:
                     else:
                         self.dir_bloqueo = self.ultimo_giro
                 w = self.dir_bloqueo * W_GIRO_BLOQUEO
+                if time.monotonic() >= self.t_giro_hasta:
+                    self.t_giro_hasta = time.monotonic() + T_GIRO_MIN_S
                 seguridad = f"{motivo}: avance anulado + giro {'izq' if w > 0 else 'der'}"
         else:
             self.dir_bloqueo = None
@@ -515,7 +540,7 @@ def panel(robot, perc, loco, eventos, t):
         "  sensor           dist [mm]   estimulo",
         f"  Sharp izq +60     {fmt_mm(d['IR_I'], cerca['IR_I'])}      sI = {x['sI']:.2f}  {barra(x['sI'])}",
         f"  Sharp der -60     {fmt_mm(d['IR_D'], cerca['IR_D'])}      sD = {x['sD']:.2f}  {barra(x['sD'])}",
-        f"  TF-Luna 0         {tf_txt}      {'BLOQUEO (< 250 mm)' if robot.tf_bloqueo else 'libre'}",
+        f"  TF-Luna 0         {tf_txt}      {'BLOQUEO (< 300 mm)' if robot.tf_bloqueo else ('lento (< 600 mm)' if tf is not None and tf < TF_LENTO_MM else 'libre')}",
         f"  IR frente KY-032  {'OBSTACULO' if loco.ir_frente else 'libre'}",
         sep,
         f"  ruedas virtuales  vI = {x['vI']:+.3f}   vD = {x['vD']:+.3f}  m/s",

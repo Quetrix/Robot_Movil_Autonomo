@@ -39,7 +39,7 @@ Muestra cada parte en pantalla mientras la explicas.
 | `estimulo()` | la fórmula | "Cada Sharp da una distancia que se normaliza a un estímulo entre cero y uno: uno a 10 centímetros o menos, cero a 60 centímetros o más." |
 | `miedo_2a` … `explorador_3b` | las 4 funciones de 1 línea | "Cada vehículo conecta los dos sensores con dos ruedas virtuales, izquierda y derecha. La conexión es directa (sensor izquierdo a rueda izquierda) o cruzada, y es excitatoria (el estímulo suma velocidad) o inhibitoria (el estímulo la resta). Las cuatro combinaciones dan los vehículos 2a, 2b, 3a y 3b." |
 | `diferencial_a_robot()` y `Locomocion.mover()` | `v = (vI+vD)/2`, `w = (vD−vI)/B`, `H 0 v w` | "Esas dos ruedas virtuales se convierten en una velocidad hacia adelante y una velocidad angular, como un robot diferencial. Se envían al ESP32 con el comando H, con la componente lateral en cero, y el ESP32 calcula las cuatro ruedas Mecanum." |
-| capa de seguridad en `paso()` | `tf_bloqueo`, `ir_frente` | "Encima hay una capa de seguridad. El comando H se repite diez veces por segundo y el ESP32 frena solo si deja de llegar. Si el TF-Luna mide menos de 25 centímetros, o el IR frontal detecta algo, se anula el avance. En el 2a y el 3b, además, gira en el lugar, porque los Sharp miran a los lados y no ven lo que está justo enfrente." |
+| capa de seguridad en `paso()` | `tf_bloqueo`, `ir_frente` | "Encima hay una capa de seguridad. El comando H se repite diez veces por segundo y el ESP32 frena solo si deja de llegar. El avance se reduce a medida que el TF-Luna se acerca a un obstáculo y se anula por debajo de 30 centímetros, o si el IR frontal detecta algo. En el 2a y el 3b, además, gira en el lugar, porque los Sharp miran a los lados y no ven lo que está justo enfrente." |
 
 ## Demostraciones (tomas 4 a 7, ~30 s cada una)
 
@@ -55,7 +55,7 @@ En cada toma: decir el nombre en voz alta **antes** de presionar la tecla, y que
 > "Comportamiento 3a, Amor: conexión directa e inhibitoria. El estímulo frena la rueda de su propio lado, así que el robot gira hacia el obstáculo, se acerca cada vez más despacio y se queda detenido frente a él."
 
 **2b — Agresión (tecla `2`).** Caja en diagonal adelante-izquierda. Dedo en `0`.
-> "Comportamiento 2b, Agresión: conexión cruzada y excitatoria. El estímulo acelera la rueda opuesta, así que el robot gira hacia el obstáculo y acelera contra él. La capa de seguridad lo detiene a 25 centímetros con el TF-Luna; sin ella lo embestiría."
+> "Comportamiento 2b, Agresión: conexión cruzada y excitatoria. El estímulo acelera la rueda opuesta, así que el robot gira hacia el obstáculo y acelera contra él. La capa de seguridad lo frena con el TF-Luna y lo detiene a 30 centímetros; sin ella lo embestiría."
 
 ## Pregunta 4 (toma 8, ~30 s)
 

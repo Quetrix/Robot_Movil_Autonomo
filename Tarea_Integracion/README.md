@@ -58,7 +58,7 @@ Cada 100 ms (`Robot.paso()`):
 | Vehículo | Conexión | Ruedas virtuales | Resultado esperado |
 |---|---|---|---|
 | 2a Miedo | directa, excitatoria | vI = V0 + K·sI, vD = V0 + K·sD | se aleja del obstáculo y acelera |
-| 2b Agresión | cruzada, excitatoria | vI = V0 + K·sD, vD = V0 + K·sI | gira hacia el obstáculo y acelera (lo frena el TF a 25 cm) |
+| 2b Agresión | cruzada, excitatoria | vI = V0 + K·sD, vD = V0 + K·sI | gira hacia el obstáculo y acelera (lo frena el TF a 30 cm) |
 | 3a Amor | directa, inhibitoria | vI = V0·(1 − sI), vD = V0·(1 − sD) | gira hacia el obstáculo, desacelera y se detiene frente a él |
 | 3b Explorador | cruzada, inhibitoria | vI = V0·(1 − sD), vD = V0·(1 − sI) | desacelera al acercarse y gira para alejarse; sigue recorriendo |
 
@@ -70,7 +70,8 @@ Si las dos ruedas virtuales quedan por debajo de 0.04 m/s, se frena.
 |---|---|---|
 | `H` a 10 Hz en vez de `V` | Pi + firmware | si el script, la Pi, el SSH o el USB fallan, el ESP32 frena solo a los 300 ms |
 | Sin capturas nuevas del cabezal durante 1 s | Pi | estado `PARO` |
-| TF-Luna < 250 mm (o "menos de 20 cm") | Pi | se anula el avance (`v ≤ 0`); se libera por encima de 350 mm. En **2a y 3b**, además, gira en el lugar a 1 rad/s hacia el lado más libre, porque los Sharp miran a ±60° y no ven lo que está justo enfrente |
+| Tope de 0.25 m/s; entre 600 y 300 mm del TF el avance baja linealmente a 0 | Pi | da tiempo a reaccionar (la latencia total es de ~0.5 s) |
+| TF-Luna < 300 mm (o "menos de 20 cm") | Pi | se anula el avance (`v ≤ 0`); se libera por encima de 400 mm. En **2a y 3b**, además, gira en el lugar a 1 rad/s hacia el lado más libre durante al menos 1.2 s (~70°), porque los Sharp miran a ±60° y no ven lo que está justo enfrente |
 | KY-032 frontal detecta | firmware | anula `vy > 0` por su cuenta (retroceder, lateral y giro siguen permitidos); la Pi lo muestra y lo trata igual que el TF |
 
 ### Pregunta 4
@@ -279,7 +280,7 @@ No está verificado que el softAP del ESP32 reenvíe tráfico entre dos clientes
 | 1 | Arrancar el script | panel con `firmware loco: ir_frontal`, `percepcion: OK`, `cabezal: 0.0 deg hold` |
 | 2 | Espacio vacío alrededor | `sI = 0.00`, `sD = 0.00` (si no, algo del robot está en el campo de visión) |
 | 3 | Mano a ~30 cm a la **izquierda** a 60° | sube `sI` (no `sD`). Si sube `sD`, usa `--invertir-sharp` |
-| 4 | Mano a < 25 cm frente al TF | `BLOQUEO (< 250 mm)`; se libera al alejarla a más de 35 cm |
+| 4 | Mano frente al TF a 40–60 cm y luego a < 30 cm | primero `lento (< 600 mm)`, después `BLOQUEO (< 300 mm)`; se libera a más de 40 cm |
 | 5 | Mano frente al KY-032 | `IR frente: OBSTACULO` y evento `[loco] # IR FRENTE: OBSTACULO` |
 | 6 | Tecla `4` sin obstáculos | las 4 ruedas giran hacia adelante a la misma velocidad; `H 0 0.200 0.000` |
 | 7 | Con `4`, mano a la izquierda | `w` negativo: las ruedas izquierdas giran más rápido que las derechas (gira a la derecha, se aleja) |
@@ -297,7 +298,7 @@ Espacio plano de al menos 2 × 2 m. Cajas de cartón **más altas que los rayos 
 | Vehículo | Montaje | Qué debe verse |
 |---|---|---|
 | 2a Miedo (`1`) | caja en diagonal adelante-izquierda, a ~40 cm | gira a la derecha alejándose y acelera. Repetir por la derecha |
-| 2b Agresión (`2`) | caja en diagonal adelante-izquierda | gira hacia la caja y acelera; el TF la detiene a ~25 cm. Si va a chocar, `0` |
+| 2b Agresión (`2`) | caja en diagonal adelante-izquierda | gira hacia la caja y acelera; el TF la frena desde 60 cm y la detiene a ~30 cm. Si va a chocar, `0` |
 | 3a Amor (`3`) | caja ancha en diagonal | gira hacia la caja, desacelera y se detiene frente a ella |
 | 3b Explorador (`4`) | 2–3 cajas y una pared | desacelera al acercarse y se aparta; con una caja justo enfrente se detiene, gira en el lugar y sigue |
 
