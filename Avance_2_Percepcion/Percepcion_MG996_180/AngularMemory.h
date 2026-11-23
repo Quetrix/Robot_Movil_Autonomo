@@ -9,9 +9,18 @@ inline Measurement measurement(float mm,int sensor,float head,uint32_t at,bool p
   Measurement m;m.at=at;m.preliminary=preliminary;m.valid=finiteRange(mm,sensor<2?cfg::IR_MIN_MM:cfg::TF_MIN_MM,sensor<2?cfg::IR_MAX_MM:cfg::TF_MAX_MM);
   if(!m.valid)return m;
   m.mm=mm;
-  if(!isfinite(head))return m;
-  m.head=head;m.ray=head+cfg::BETA_DEG[sensor];
-  headToRobot(head,cfg::BETA_DEG[sensor],cfg::ORIGIN_X_MM[sensor],cfg::ORIGIN_Y_MM[sensor],mm,m.x,m.y);
+  // Sharp fijos: angulo de cabezal 0 y origen = pivote + cara rotada por el giro del soporte.
+  const bool onHead=cfg::ON_HEAD[sensor];
+  if(onHead&&!isfinite(head))return m;
+  const float h=onHead?head:0.0f;
+  float ox=cfg::TF_ORIGIN_X_MM,oy=cfg::TF_ORIGIN_Y_MM;
+  if(!onHead){
+    const float b=cfg::BETA_DEG[sensor]*0.0174532925199433f, side=sensor==0?1.0f:-1.0f;
+    ox=cfg::SHARP_PIVOT_X_MM+cfg::SHARP_FACE_FROM_PIVOT_MM*cosf(b);
+    oy=side*cfg::SHARP_PIVOT_Y_MM+cfg::SHARP_FACE_FROM_PIVOT_MM*sinf(b);
+  }
+  m.head=h;m.ray=h+cfg::BETA_DEG[sensor];
+  headToRobot(h,cfg::BETA_DEG[sensor],ox,oy,mm,m.x,m.y);
   m.radius=hypotf(m.x,m.y);m.bearing=atan2f(m.y,m.x)*57.2957795131f;m.pose=true;return m;
 }
 struct Contribution {

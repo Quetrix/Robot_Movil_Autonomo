@@ -60,12 +60,12 @@ El ESP32 crea un punto de acceso WiFi: SSID `Percepcion-ESP32`, clave `percepcio
 | Rango válido Sharp / TF | 100–800 mm / 200–8000 mm | |
 | Anclas del servo −60° / 0° / +60° | 1167 / 1500 / 1833 µs | **sin calibrar** (aproximación de 1000–2000 µs) |
 | `SERVO_SIGN` | +1 | verificar el sentido físico |
-| Origen de cada sensor (`ORIGIN_X/Y_MM`) | 0 | **sin medir** (`GEOMETRY_MEASURED = false`) |
+| Geometría (montaje v2: Sharp fijos en L4, solo el TF-Luna en el servo) | eje del servo a 62 mm del centro; Sharp con pivote en (−40, ±36) desde el eje y yaw 45° por defecto; TF a 7 mm del eje; barrido ±60° | yaw y cara de los Sharp **sin medir** (`GEOMETRY_MEASURED = false`). Ver [`Documentos/Geometria_robot.md`](../Documentos/Geometria_robot.md) |
 | Tablas de calibración de los Sharp | vacías | se usa la curva preliminar (`IR_ALLOW_PRELIMINARY`); en el serial aparece marcada con `~` |
 | Corrección del TF-Luna | escala 1.0068, offset −1.13 cm (entre 200 y 2100 mm) | de una calibración anterior |
 
 ## Pendientes para la entrega final
 
 - Calibrar las anclas del servo, medir los orígenes de los sensores respecto al eje y cargar las tablas de los Sharp (mínimo 3 puntos por sensor).
-- El mensaje de `ANGLE` dice "−60 a +60", pero los límites reales (`HEAD_MIN/MAX_DEG`) son ±90°. Hay que unificarlos.
+- (Resuelto en 1.2) Los límites `HEAD_MIN/MAX_DEG` ahora son ±60°, igual que el mensaje de `ANGLE`.
 - Integración: la Raspberry Pi necesita la matriz por serial o WiFi, y todavía no hay un formato de trama definido para eso (la salida serial actual está pensada para lectura humana).
