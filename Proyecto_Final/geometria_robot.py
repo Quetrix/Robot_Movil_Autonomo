@@ -1,11 +1,10 @@
 """Geometria del robot para la Raspberry Pi (entrega final).
 
-Fuente: Documentos/Geometria_robot.md. Mantener estos valores iguales a los de
-Avance_2_Percepcion/Percepcion_MG996_180/Config.h.
+Fuente: Documentos/Geometria_robot.md. Es la unica copia que usa el software: el firmware
+de percepcion final entrega angulo del cabezal y distancia, y la Pi hace la geometria.
 
 Marco robot (R): origen en el centro del chasis, X adelante, Y izquierda, angulos
-antihorarios, mm. El firmware de percepcion entrega puntos en el marco del eje del
-servo (P); pasar a R con percepcion_a_robot().
+antihorarios, mm. Marco P: origen en el eje del servo, mismos ejes (x_R = x_P + 62).
 """
 import math
 
@@ -29,9 +28,10 @@ SHARP_ALTURA_SOBRE_L4_MM = 12.05
 CAMARA_X_MM = 36.0
 CAMARA_Y_MM = 0.0
 CAMARA_ALTURA_SOBRE_L4_MM = 80.0
-CAMARA_INCLINACION_DEG = None    # [MEDIR] hacia abajo
+CAMARA_INCLINACION_DEG = 15.0    # hacia abajo; valor recomendado, ver inclinacion_optima()
 
 H_L4_SOBRE_PISO_MM = None        # [MEDIR] cara superior de la placa L4
+H_L4_ESTIMADA_MM = 180.0         # solo para calcular mientras no se mida
 
 
 def percepcion_a_robot(x_p, y_p):
@@ -64,7 +64,29 @@ def punto_detectado(pose, distancia_mm):
     return x + distancia_mm * math.cos(a), y + distancia_mm * math.sin(a)
 
 
+def altura_camara_m():
+    """Altura de la lente sobre el piso (con la estimacion si H_L4 no se ha medido)."""
+    h = H_L4_SOBRE_PISO_MM if H_L4_SOBRE_PISO_MM is not None else H_L4_ESTIMADA_MM
+    return (h + CAMARA_ALTURA_SOBRE_L4_MM) / 1000.0
+
+
+def inclinacion_optima(h_cam_m, d_min_m=0.5, d_max_m=3.0, h_cono_m=0.18):
+    """Inclinacion [grados hacia abajo] que centra en la imagen la franja util: desde la base de
+    un cono a d_min hasta la punta de un cono a d_max. Requiere FOV vertical mayor que la franja."""
+    abajo = math.degrees(math.atan2(h_cam_m, d_min_m))
+    arriba = math.degrees(math.atan2(h_cam_m - h_cono_m, d_max_m))
+    return (abajo + arriba) / 2, abajo - arriba
+
+
+def tf_punto(angulo_cabezal_deg, distancia_mm):
+    """Punto detectado por el TF-Luna en R [mm]."""
+    return punto_detectado(tf_pose(angulo_cabezal_deg), distancia_mm)
+
+
 if __name__ == "__main__":
     for lado in ("izq", "der"):
         print(lado, [round(v, 1) for v in sharp_pose(lado)])
     print("TF 0 deg", tf_pose(0))
+    h = altura_camara_m()
+    inc, franja = inclinacion_optima(h)
+    print("camara a %.3f m: inclinacion optima %.1f grados (franja de %.1f grados)" % (h, inc, franja))

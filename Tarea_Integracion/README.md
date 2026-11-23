@@ -1,11 +1,13 @@
 # Tarea 8 — Comportamientos de Braitenberg (locomoción + percepción + Raspberry Pi)
 
+> **Entregada el 10 nov.** Funciona con los firmwares de la Tarea 8, que ahora están en `Avance_1_Locomocion/_respaldo/locomocion_esp32_ir_frontal` y `Avance_2_Percepcion/_respaldo/Percepcion_MG996_180`. No es compatible con los firmwares finales (otro protocolo y baudios). El programa de la prueba final está en `Proyecto_Final/`.
+
 `braitenberg.py` corre en la Raspberry Pi 5. Lee los dos Sharp y el TF-Luna del cabezal de percepción, ejecuta una máquina de estados con 4 vehículos de Braitenberg y manda velocidades al ESP32 de locomoción. Es la arquitectura base que se reutiliza en el proyecto final.
 
 | Módulo | Firmware | Enlace con la Pi |
 |---|---|---|
-| ESP32 de locomoción | [`Avance_1_Locomocion/locomocion_esp32_ir_frontal`](../Avance_1_Locomocion/locomocion_esp32_ir_frontal/) (variante sin IR + KY-032 frontal en GPIO34) | USB, 115200 baud |
-| ESP32 del cabezal | [`Avance_2_Percepcion/Percepcion_MG996_180`](../Avance_2_Percepcion/Percepcion_MG996_180/) (sin cambios, fijo en `CENTER`) | WiFi propio `Percepcion-ESP32` → `http://192.168.4.1/data`. Respaldo: USB con `DETAIL` |
+| ESP32 de locomoción | [`Avance_1_Locomocion/_respaldo/locomocion_esp32_ir_frontal`](../Avance_1_Locomocion/_respaldo/locomocion_esp32_ir_frontal/) (variante sin IR + KY-032 frontal en GPIO34) | USB, 115200 baud |
+| ESP32 del cabezal | [`Avance_2_Percepcion/_respaldo/Percepcion_MG996_180`](../Avance_2_Percepcion/_respaldo/Percepcion_MG996_180/) (sin cambios, fijo en `CENTER`) | WiFi propio `Percepcion-ESP32` → `http://192.168.4.1/data`. Respaldo: USB con `DETAIL` |
 
 **Si no sueles usar terminal, GitHub o SSH, sigue [`GUIA_PASO_A_PASO.md`](GUIA_PASO_A_PASO.md):** cada comando trae dónde se ejecuta y qué debes ver. Este README es la referencia técnica.
 
@@ -163,7 +165,7 @@ GPIO0 queda libre, pero es pin de arranque: no conectarle nada.
 ## 4. Flashear el ESP32 de locomoción (desde la laptop)
 
 1. Arduino IDE 2 con el core **esp32 by Espressif 3.x** (probado con 3.3.12). Placa **ESP32 Dev Module**, opciones por defecto.
-2. Abrir `Avance_1_Locomocion/locomocion_esp32_ir_frontal/locomocion_esp32_ir_frontal.ino`.
+2. Abrir `Avance_1_Locomocion/_respaldo/locomocion_esp32_ir_frontal/locomocion_esp32_ir_frontal.ino`.
 3. **Batería de motores desconectada.** ESP32 por USB a la laptop → elegir el puerto → Subir. Si se queda en `Connecting...`, mantener presionado BOOT hasta que empiece a escribir.
 4. Monitor serie a 115200, fin de línea "Nueva línea". Al reiniciar debe aparecer `ROBOT MECANUM - LOCOMOCION IR FRONTAL` y `# IR FRENTE: LIBRE`.
 5. Pasar la mano frente al KY-032: `# IR FRENTE: OBSTACULO` y, al retirarla, `# IR FRENTE: LIBRE`. Si no cambia, ajusta el potenciómetro de distancia del módulo hasta que detecte a unos 15 cm.

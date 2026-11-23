@@ -2,12 +2,12 @@
 
 Fuente única de las posiciones de sensores para el firmware y la Raspberry Pi. Las cifras salen de las placas de acrílico (`MT9005_L4_top` v4.2) y del modelo de Fusion `MT9005_Cabeza_v2_Sensores_Fijos`. Las marcadas **[MEDIR]** o **[ESTIMADO]** se tienen que medir en el robot armado antes de dar por buena la precisión.
 
-Módulo de Python con estos mismos números: [`Proyecto_Final/geometria_robot.py`](../Proyecto_Final/geometria_robot.py). En el firmware de percepción están en `Avance_2_Percepcion/Percepcion_MG996_180/Config.h`.
+Módulo de Python con estos mismos números: [`Proyecto_Final/geometria_robot.py`](../Proyecto_Final/geometria_robot.py). Es la única copia que usa el software: el firmware de percepción final solo entrega el ángulo del cabezal y la distancia, y la Pi hace la geometría.
 
 ## Marcos de referencia
 
-- **Marco robot (R):** origen en el centro del chasís (centro de las placas de 120 × 180 mm), X hacia adelante, Y a la izquierda, Z hacia arriba, ángulos antihorarios. Es el mismo que usa locomoción en las tramas `X,Y,T`.
-- **Marco de percepción (P):** origen en el eje del servo, mismos ejes que R. El firmware de percepción entrega `x, y` y la matriz `[ángulo; distancia]` en este marco.
+- **Marco robot (R):** origen en el centro del chasís (centro de las placas de 120 × 180 mm), X hacia adelante, Y a la izquierda, Z hacia arriba, ángulos antihorarios. Es el mismo del comando `V,vx,vy,wz` del firmware de locomoción final (el de la Tarea 8 usaba vx = derecha, vy = adelante).
+- **Marco de percepción (P):** origen en el eje del servo, mismos ejes que R. El firmware de percepción entrega el ángulo del cabezal (antihorario +, 0 = frente) y la distancia del TF-Luna; `falda.py` los pasa a R.
 - Paso de P a R: **x_R = x_P + 62 mm**, y_R = y_P. El servo está centrado en Y.
 - Conversión desde el DXF de las placas (X a lo ancho, Y a lo largo, frente = +Y): x_R = Y_placa, y_R = −X_placa.
 
@@ -20,7 +20,7 @@ Módulo de Python con estos mismos números: [`Proyecto_Final/geometria_robot.py
 | Sharp izquierdo, pivote | (22, +36) | 12.05 mm | +yaw, hacia afuera | yaw de 0 a 90°, leído en la escala grabada; por defecto 45° **[AJUSTAR]** |
 | Sharp derecho, pivote | (22, −36) | 12.05 mm | −yaw, hacia afuera | igual que el izquierdo |
 | Cara de cada Sharp | pivote + 20 mm · (cos yaw, ±sin yaw) | 12.05 mm | | 20 mm **[ESTIMADO]**: medir del pivote a la ventana |
-| Cámara (lente) | (36, 0) | ~80 mm | al frente, inclinación **[MEDIR]** | Arducam IMX219 USB sobre el poste |
+| Cámara (lente) | (36, 0) | ~80 mm | al frente, **15° hacia abajo** (recomendado), medir la real | Arducam IMX219 USB sobre el poste, 640 × 480 (4:3) |
 | IR discretos KY-032 | uno al frente y otro atrás, en la base L1 | — | | posición sin definir |
 
 Con el yaw por defecto de 45°, la cara del Sharp izquierdo queda en R ≈ (36.1, 50.1) y la del derecho en (36.1, −50.1). En el marco P son (−25.9, ±50.1).
@@ -33,8 +33,8 @@ La altura de L4 sobre el piso depende de los separadores y todavía no está med
 
 ## Pendientes de medición
 
-1. Yaw real de cada Sharp en la escala → `SHARP_YAW_DEG` (Config.h) y `SHARP_YAW_DEG` (geometria_robot.py).
-2. Distancia del pivote a la cara del Sharp → `SHARP_FACE_FROM_PIVOT_MM`.
-3. Offset de rango del TF-Luna (lente delante del eje) → `TF_ORIGIN_X_MM`.
-4. H_L4 sobre el piso, e inclinación y FOV de la cámara.
-5. Al terminar, `GEOMETRY_MEASURED = true` en Config.h.
+1. Yaw real de cada Sharp en la escala → `SHARP_YAW_DEG` (geometria_robot.py).
+2. Distancia del pivote a la cara del Sharp → `SHARP_CARA_DESDE_PIVOTE_MM`.
+3. Offset de rango del TF-Luna (lente delante del eje) → `TF_ORIGEN_CABEZAL_X_MM`.
+4. H_L4 sobre el piso (`H_L4_SOBRE_PISO_MM`; con ella `python3 geometria_robot.py` da la inclinación óptima), e inclinación y FOV reales de la cámara (`calibrar.py camara`).
+5. Anclas del servo (−60/0/+60) y *lag* por sentido en `percepcion.ino` (`calibrar.py lag`).
