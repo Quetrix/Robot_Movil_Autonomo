@@ -17,7 +17,7 @@ Dónde se ejecuta cada comando:
 Esos scripts corren igual en dos montajes:
 
 - **Montaje normal (recomendado): los ESP32 en los USB de la Pi.** La laptop entra a la Pi por WiFi (SSH) y no tiene cables al robot. Es el mismo montaje de la prueba, así que también verifica la alimentación y los USB reales.
-- **Montaje de banco: un ESP32 conectado directo a la laptop.** Es obligatorio para **cargar el firmware**. Opcionalmente sirve para calibrar en la laptop, por ejemplo el feedforward con el robot sobre la mesa. Se agrega `--loco COM5` o `--perc COM6` al comando. El número de COM aparece en Arduino IDE → Herramientas → Puerto.
+- **Montaje de banco: un ESP32 conectado directo a la laptop.** Es obligatorio para **cargar el firmware**. Opcionalmente sirve para calibrar en la laptop, por ejemplo el feedforward con el robot sobre la mesa. Se agrega `--loco COM5` o `--perc COM6` **antes** del subcomando, por ejemplo `python calibrar.py --loco COM5 ff`. El número de COM aparece en Arduino IDE → Herramientas → Puerto.
 
 Reglas:
 
@@ -156,7 +156,7 @@ En el hotspot, usa `fede@192.168.50.1` en lugar de `fede@robo-pi-5.local`. Adjun
 
 ## 5. Calibraciones
 
-Todas imprimen los valores para pegar y guardan su CSV en `registros/<fecha>/`. Si corres en la laptop, agrega `--loco COMx` o `--perc COMx` y ejecútalas desde la carpeta `Proyecto_Final` del repo en la laptop.
+Todas imprimen los valores para pegar y guardan su CSV en `registros/<fecha>/`. Si corres en la laptop, ejecútalas desde la carpeta `Proyecto_Final` del repo con el puerto antes del subcomando: `python calibrar.py --loco COM5 ff`.
 
 ### 5.1 Feedforward de los motores — `calibrar.py ff`
 
