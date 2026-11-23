@@ -25,8 +25,11 @@ from odometria import Odometria
 from registro import Registro
 
 
+PUERTOS = {}   # --loco / --perc de la linea de comandos
+
+
 def abrir(reg, cual=("LOCO", "PERC")):
-    rutas = {"LOCO": config.PUERTO_LOCO, "PERC": config.PUERTO_PERC}
+    rutas = {"LOCO": PUERTOS.get("LOCO") or config.PUERTO_LOCO, "PERC": PUERTOS.get("PERC") or config.PUERTO_PERC}
     if any(rutas[k] is None for k in cual):
         enc = buscar_puertos()
         rutas = {k: rutas[k] or enc.get(k) for k in rutas}
@@ -265,6 +268,15 @@ def cmd_camara(args):
     print("Fotos en", reg.carpeta)
 
 
+def agregar_puertos(p):
+    p.add_argument("--loco", help="puerto del ESP32 de locomocion (p. ej. COM5); por defecto se busca")
+    p.add_argument("--perc", help="puerto del ESP32 de percepcion")
+
+
+def leer_puertos(args):
+    PUERTOS.update({k: v for k, v in (("LOCO", args.loco), ("PERC", args.perc)) if v})
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -286,7 +298,9 @@ def main():
     c.add_argument("--segundos", type=float, default=10)
     c.add_argument("--fotos", type=int, default=3)
     c.set_defaults(f=cmd_camara)
+    agregar_puertos(p)
     args = p.parse_args()
+    leer_puertos(args)
     args.f(args)
 
 

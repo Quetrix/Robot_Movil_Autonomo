@@ -34,8 +34,14 @@ def abrir_puerto(ruta, timeout=0.05):
 
 
 def candidatos():
+    """Puertos seriales posibles. En la Pi: /dev/serial/by-id (no cambian de nombre); en
+    Windows/macOS: COMx o /dev/cu.* de pyserial."""
     rutas = sorted(glob.glob("/dev/serial/by-id/*"))
-    return rutas or sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*"))
+    rutas = rutas or sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*"))
+    if not rutas and serial is not None:
+        from serial.tools import list_ports
+        rutas = [p.device for p in list_ports.comports() if p.vid is not None]
+    return rutas
 
 
 def identificar(ruta, espera_s=1.5):

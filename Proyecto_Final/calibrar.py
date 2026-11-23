@@ -2,13 +2,18 @@
 """Calibraciones que faltan antes de las pruebas de navegacion (ver README, plan de pruebas).
 
     python3 calibrar.py ff          # robot levantado: feedforward de los motores con la bateria real
+    python3 calibrar.py pi          # robot levantado: referencia vs RPM medida (verifica el ff)
     python3 calibrar.py odometria   # en el piso: recta de 2 m y dos vueltas -> RADIO_RUEDA y L_GEOM
     python3 calibrar.py lag         # canto vertical de una caja a ~0.8 m al frente -> LAG del servo
     python3 calibrar.py sharp       # objeto plano a distancias conocidas -> tablas de los Sharp
     python3 calibrar.py camara --distancia 1.5 --lateral 0.5   # un cono -> FOV e inclinacion
 
-Cada una imprime los valores para copiar en el firmware o en config.py.
+Cada una imprime los valores para copiar en el firmware o en config.py y guarda sus datos en
+registros/<fecha_hora>/ (CSV de la calibracion + lineas crudas del USB). Funciona en la Pi o en
+una laptop con el ESP32 por USB (--loco COM5 / --perc COM6). Guia: GUIA_PRUEBAS.md.
 """
+import csv
+import os
 import argparse
 import math
 import statistics
@@ -16,8 +21,18 @@ import time
 
 import config
 import protocolo as P
-from diagnostico import abrir
+from diagnostico import abrir, agregar_puertos, leer_puertos
 from registro import Registro
+
+
+def guardar_csv(reg, nombre, columnas, filas):
+    ruta = os.path.join(reg.carpeta, nombre)
+    with open(ruta, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(columnas)
+        w.writerows(filas)
+    print("Datos guardados en", ruta)
+    return ruta
 
 
 def esperar_enter(texto):
@@ -35,6 +50,7 @@ def cmd_ff(args):
     if pwms[-1] != 255:
         pwms.append(255)
     resultado = {1: {}, -1: {}}
+    filas = []
     try:
         for sentido in (1, -1):
             for pwm in pwms:
@@ -48,12 +64,15 @@ def cmd_ff(args):
                 c1, t1 = list(loco.conteos), time.monotonic()
                 rpm = [abs(b - a) / n * 60 / (t1 - t0) for a, b, n in zip(c0, c1, config.CPR)]
                 resultado[sentido][pwm] = rpm
+                filas.append([sentido, pwm] + ["%.2f" % r for r in rpm])
                 print("%s PWM %3d -> RPM %s" % ("+" if sentido > 0 else "-", pwm, " ".join("%6.1f" % r for r in rpm)))
             loco.parar()
             time.sleep(1.5)
     finally:
         loco.parar()
         loco.enviar("A", 0)
+        reg.vaciar(forzar=True)
+        guardar_csv(reg, "ff.csv", ["sentido", "pwm", "rpm_FL", "rpm_FR", "rpm_RL", "rpm_RR"], filas)
         reg.cerrar()
     imprimir_ff(resultado)
 
@@ -85,6 +104,53 @@ def imprimir_ff(res):
     print("const float RPM_REV[4][N_REV] = {\n  %s};" % ",\n  ".join(filas))
     print("// Si alguna rueda no llega a 120 RPM hacia adelante, bajar RPM_MAX (firmware y config.py).")
     print("// Para tener feedforward a baja velocidad, repetir con --desde 60 y revisar donde empieza a girar.")
+
+
+# ------------------------------------------------------------------ seguimiento del PI
+PRUEBAS_PI = [  # (nombre, vx m/s, vy m/s, wz grados/s)
+    ("adelante_0.10", 0.10, 0, 0), ("adelante_0.20", 0.20, 0, 0), ("adelante_0.28", 0.28, 0, 0),
+    ("atras_0.20", -0.20, 0, 0), ("izquierda_0.15", 0, 0.15, 0), ("derecha_0.15", 0, -0.15, 0),
+    ("giro_60", 0, 0, 60), ("giro_-60", 0, 0, -60),
+]
+
+
+def cmd_pi(args):
+    reg = Registro()
+    odom, _, loco, _ = abrir(reg, ("LOCO",))
+    esperar_enter("Robot LEVANTADO (o en el piso con %.1f m libres por prueba)." % 0.9)
+    loco.enviar("A", 1)
+    filas, resumen = [], []
+    try:
+        for nombre, vx, vy, wz in PRUEBAS_PI:
+            t0 = time.monotonic()
+            previo, ultimo = None, None
+            errores = [[] for _ in range(4)]
+            while time.monotonic() - t0 < args.segundos:
+                loco.velocidad(vx, vy, math.radians(wz))
+                c, t = loco.conteos, time.monotonic()
+                if c is not None and c is not ultimo:
+                    if previo is not None and t > previo[1]:
+                        rpm = [(a - b) / n * 60 / (t - previo[1]) for a, b, n in zip(c, previo[0], config.CPR)]
+                        filas.append([nombre, "%.3f" % (t - t0)] + list(loco.ref_rpm) + ["%.1f" % r for r in rpm] + list(loco.pwm))
+                        if t - t0 > args.segundos / 2:
+                            for i in range(4):
+                                if abs(loco.ref_rpm[i]) > 5:
+                                    errores[i].append((rpm[i] - loco.ref_rpm[i]) / abs(loco.ref_rpm[i]) * 100)
+                    previo, ultimo = (list(c), t), c
+                time.sleep(config.PERIODO_CMD_S)
+            loco.velocidad(0, 0, 0)
+            time.sleep(1.2)
+            e = ["%+5.1f%%" % statistics.mean(x) if x else "  -  " for x in errores]
+            resumen.append((nombre, e))
+            print("%-15s error medio FL %s FR %s RL %s RR %s" % (nombre, *e))
+    finally:
+        loco.parar()
+        loco.enviar("A", 0)
+        reg.vaciar(forzar=True)
+        guardar_csv(reg, "pi.csv", ["prueba", "t_s", "ref_FL", "ref_FR", "ref_RL", "ref_RR",
+                                    "rpm_FL", "rpm_FR", "rpm_RL", "rpm_RR", "pwm_FL", "pwm_FR", "pwm_RL", "pwm_RR"], filas)
+        reg.cerrar()
+    print("Criterio: |error medio| <= 5 %% en todas las ruedas. Error grande y con signo fijo = feedforward mal.")
 
 
 # ------------------------------------------------------------------ odometria
@@ -126,6 +192,8 @@ def cmd_odometria(args):
         # th_odo = R/(4L) * sum -> con el radio corregido, L_real = L * (th_odo * radio/R) / th_real
         l_geom = config.L_GEOM * (th * radio / config.RADIO_RUEDA) / real
         print("\nCopiar en config.py:\nRADIO_RUEDA = %.4f\nL_GEOM = %.4f" % (radio, l_geom))
+        guardar_csv(reg, "odometria.csv", ["d_odo_m", "d_real_m", "th_odo_rad", "th_real_rad", "radio", "l_geom"],
+                    [[d_odo, d_real, th, real, radio, l_geom]])
         print("(El firmware usa RADIO y L_GEOM para la cinematica inversa: si cambian mas de 5 %, "
               "actualizarlos tambien en locomocion.ino para que las velocidades pedidas sean reales.)")
     finally:
@@ -174,6 +242,9 @@ def cmd_lag(args):
         lag_cw = abs(th_b - th_borde) / args.vel * 1000
         print("Borde barriendo: subiendo %.2f, bajando %.2f grados" % (th_s, th_b))
         print("\nLAG antihorario %.0f ms, horario %.0f ms" % (lag_ccw, lag_cw))
+        guardar_csv(reg, "lag.csv", ["fase", "angulo_deg", "dist_mm"],
+                    [["estatico", a, d] for a, d in estaticas] + [["sube", a, d] for a, d in sube] +
+                    [["baja", a, d] for a, d in baja])
         print("Probar ya: python3 diagnostico.py servo Z %.0f %.0f" % (lag_ccw, lag_cw))
         print("Dejar fijo en percepcion.ino: float lagCcwMs = %.0f, lagCwMs = %.0f;" % (lag_ccw, lag_cw))
         print("Aceptacion: repetir con los valores nuevos; los dos sentidos deben dar el borde a +-1-2 grados.")
@@ -187,6 +258,7 @@ def cmd_sharp(args):
     reg = Registro()
     _, _, _, perc = abrir(reg, ("PERC",))
     tabla = {0: [], 1: []}
+    filas = []
     try:
         for d in args.distancias:
             esperar_enter("Objeto plano (carton blanco) a %d mm de la cara de AMBOS Sharp." % d)
@@ -203,8 +275,10 @@ def cmd_sharp(args):
                 time.sleep(0.02)
             for i in (0, 1):
                 tabla[i].append((statistics.median(mv[i]), d))
+            filas += [[d, a, b] for a, b in zip(mv[0], mv[1])]
             print("  izq %.0f mV  der %.0f mV" % (statistics.median(mv[0]), statistics.median(mv[1])))
     finally:
+        guardar_csv(reg, "sharp.csv", ["dist_mm", "izq_mv", "der_mv"], filas)
         reg.cerrar()
     print("\n// Pegar en percepcion.ino (mV crecientes):")
     print("const PuntoCal SHARP_TABLA[2][%d] = {" % len(args.distancias))
@@ -254,9 +328,12 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     f = sub.add_parser("ff")
-    f.add_argument("--desde", type=int, default=100)
+    f.add_argument("--desde", type=int, default=60, help="PWM inicial (bajo, para ver la zona muerta)")
     f.add_argument("--paso", type=int, default=15)
     f.set_defaults(fn=cmd_ff)
+    q = sub.add_parser("pi")
+    q.add_argument("--segundos", type=float, default=3.0)
+    q.set_defaults(fn=cmd_pi)
     o = sub.add_parser("odometria")
     o.add_argument("--distancia", type=float, default=2.0)
     o.add_argument("--vueltas", type=int, default=2)
@@ -273,7 +350,9 @@ def main():
     c.add_argument("--distancia", type=float, default=1.5)
     c.add_argument("--lateral", type=float, default=0.5)
     c.set_defaults(fn=cmd_camara)
+    agregar_puertos(p)
     args = p.parse_args()
+    leer_puertos(args)
     args.fn(args)
 
 

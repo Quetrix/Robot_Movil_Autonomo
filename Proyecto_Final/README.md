@@ -1,6 +1,6 @@
 # Proyecto final: programa de la Raspberry Pi 5
 
-Navegación, visión, odometría, diagnóstico y grabación de datos para la prueba del 2 de diciembre. Los dos ESP32 son esclavos de la Pi por USB y no usan WiFi. El análisis completo y las decisiones están en [`../Documentos/Fase_final_analisis.md`](../Documentos/Fase_final_analisis.md).
+Navegación, visión, odometría, diagnóstico y grabación de datos para la prueba del 2 de diciembre. **Para correr las pruebas y calibraciones paso a paso: [`GUIA_PRUEBAS.md`](GUIA_PRUEBAS.md).** Los dos ESP32 son esclavos de la Pi por USB y no usan WiFi. El análisis completo y las decisiones están en [`../Documentos/Fase_final_analisis.md`](../Documentos/Fase_final_analisis.md).
 
 ```
                   power bank 5 V / 3 A (USB-C)
@@ -28,7 +28,8 @@ Navegación, visión, odometría, diagnóstico y grabación de datos para la pru
 | `enlaces.py`, `protocolo.py` | Puertos USB: identificación, hilos lectores, checksum, contadores de pérdida, reconexión |
 | `registro.py` | Graba cada corrida en `registros/<fecha_hora>/` |
 | `diagnostico.py` | `puertos`, `salud`, `monitor`, `teleop`, `servo`, `camara` |
-| `calibrar.py` | `ff`, `odometria`, `lag`, `sharp`, `camara` |
+| `calibrar.py` | `ff`, `pi`, `odometria`, `lag`, `sharp`, `camara`; cada una guarda su CSV |
+| `exportar.py` | Pasa un registro a CSV por tipo de trama y escribe `resumen.txt` con las pérdidas; `--zip` para compartirlo |
 | `sim.py` | Simulador de los dos ESP32 y la cámara para probar sin robot |
 | `config.py`, `geometria_robot.py`, `config_conos.json` | Parámetros, geometría de sensores y rango de color de los conos |
 | `herramientas_conos/` | Pasos 1–3 de `Deteccion_Conos` (cámara, calibración de color con ventana, detección en vivo); para la laptop |
