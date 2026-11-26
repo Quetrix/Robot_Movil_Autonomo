@@ -10,8 +10,15 @@ import math
 # ---------------------------------------------------------------- enlaces USB
 BAUDIOS = 115200
 # Puertos fijos (opcional). Si quedan en None se identifican solos con "?" -> I,LOCO / I,PERC.
-PUERTO_LOCO = None
-PUERTO_PERC = None
+# Pi 5: LOCO en el puerto USB 2.0 inferior, PERC en el superior (no intercambiarlos).
+# Si la ruta no existe (otra computadora, cable en otro puerto) queda None y se identifican con "?".
+def _fijo(ruta):
+    import os
+    return ruta if os.path.exists(ruta) else None
+
+
+PUERTO_LOCO = _fijo("/dev/serial/by-path/platform-xhci-hcd.1-usb-0:2:1.0-port0")
+PUERTO_PERC = _fijo("/dev/serial/by-path/platform-xhci-hcd.0-usb-0:2:1.0-port0")
 PERIODO_CMD_S = 0.05          # V a 20 Hz; el ESP32 frena solo si pasan 0.5 s sin V
 PERIODO_KEEPALIVE_PERC_S = 1.0
 TIMEOUT_DATOS_S = 0.5         # sin tramas L/T en este tiempo -> enlace caido
