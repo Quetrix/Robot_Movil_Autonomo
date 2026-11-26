@@ -30,6 +30,13 @@ def abrir_puerto(ruta, timeout=0.05):
     s.dtr = False     # sin esto, abrir el puerto reinicia el ESP32 (EN conectado a DTR/RTS)
     s.rts = False
     s.open()
+    # El driver cp210x de Linux solo reprograma el baud del chip cuando la velocidad pedida
+    # cambia respecto a la guardada; tras reconectar el USB o usar otro programa el chip puede
+    # quedar a otra velocidad (se vio en la Pi: >450 kbaud con 115200 pedido). Forzar el cambio:
+    s.baudrate = 9600
+    s.baudrate = config.BAUDIOS
+    time.sleep(0.02)
+    s.reset_input_buffer()
     return s
 
 
