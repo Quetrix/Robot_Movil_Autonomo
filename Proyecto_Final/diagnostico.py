@@ -45,10 +45,18 @@ def abrir(reg, cual=("LOCO", "PERC")):
 
 
 def cmd_puertos(_):
-    for ruta in candidatos() or ["(ningun puerto serial)"]:
+    rutas = candidatos()
+    if not rutas:
+        print("Ningun puerto serial: revisar cables USB (que sean de datos, no solo de carga)")
+    for ruta in rutas:
         quien = identificar(ruta) if os.path.exists(ruta) else None
-        print("%-70s %s" % (ruta, quien or "sin respuesta (otro firmware, ocupado o sin permiso)"))
-    print("\nPara fijarlos, copiar la ruta /dev/serial/by-id/... en PUERTO_LOCO / PUERTO_PERC de config.py")
+        if quien:
+            print("%-70s %s" % (ruta, quien))
+        elif not os.access(ruta, os.R_OK | os.W_OK):
+            print("%-70s SIN PERMISO: sudo usermod -aG dialout $USER, luego salir y volver a entrar" % ruta)
+        else:
+            print("%-70s sin respuesta: firmware viejo (115200 baud) o puerto abierto por otro programa" % ruta)
+    print("\nPara fijarlos, copiar la ruta /dev/serial/by-path/... en PUERTO_LOCO / PUERTO_PERC de config.py")
 
 
 def salud():

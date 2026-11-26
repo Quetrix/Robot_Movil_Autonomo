@@ -126,7 +126,7 @@ sudo systemctl disable --now ModemManager 2>/dev/null
 | `0x50000` | Hubo bajo voltaje desde que encendió. Revisar el cable USB-C y el power bank |
 | `0x50005` | Hay bajo voltaje ahora |
 
-[P] `python3 diagnostico.py puertos`. **Debes ver:** una línea terminada en `LOCO` y otra en `PERC`. Si quieres fijarlas, copia esas rutas `/dev/serial/by-id/...` en `PUERTO_LOCO` y `PUERTO_PERC` de `config.py`.
+[P] `python3 diagnostico.py puertos`. **Debes ver:** una línea terminada en `LOCO` y otra en `PERC`. Si quieres fijarlas, copia esas rutas `/dev/serial/by-path/...` en `PUERTO_LOCO` y `PUERTO_PERC` de `config.py`.
 
 ## 3. Cómo se revisa que no se pierdan tramas
 

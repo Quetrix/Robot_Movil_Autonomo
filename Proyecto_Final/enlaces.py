@@ -34,10 +34,12 @@ def abrir_puerto(ruta, timeout=0.05):
 
 
 def candidatos():
-    """Puertos seriales posibles. En la Pi: /dev/serial/by-id (no cambian de nombre); en
-    Windows/macOS: COMx o /dev/cu.* de pyserial."""
-    rutas = sorted(glob.glob("/dev/serial/by-id/*"))
-    rutas = rutas or sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*"))
+    """Puertos seriales posibles. En Linux se usan /dev/serial/by-path: dependen del puerto USB
+    fisico y no cambian. /dev/serial/by-id NO sirve con dos ESP32 iguales: los CP2102 traen todos
+    el mismo numero de serie (0001) y solo queda un enlace para los dos. En Windows/macOS: COMx."""
+    rutas = sorted(glob.glob("/dev/serial/by-path/*"))
+    if len(rutas) < len(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*")):
+        rutas = sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*"))
     if not rutas and serial is not None:
         from serial.tools import list_ports
         rutas = [p.device for p in list_ports.comports() if p.vid is not None]

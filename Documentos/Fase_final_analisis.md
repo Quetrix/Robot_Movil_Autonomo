@@ -19,7 +19,7 @@ Revisión de `main` + rama `geometria-montaje-final` y del código de `Pruebas/D
 | Fuente | Solución |
 |---|---|
 | Límite de 600 mA del USB de la Pi 5 | `usb_max_current_enable=1`. `diagnostico.py salud` revisa bajo voltaje y la configuración |
-| Los `/dev/ttyUSB*` cambian de orden al arrancar | Identificación con `?` → `I,LOCO` / `I,PERC`, o rutas fijas `/dev/serial/by-id` |
+| Los `/dev/ttyUSB*` cambian de orden al arrancar | Identificación con `?` → `I,LOCO` / `I,PERC`, o rutas fijas `/dev/serial/by-path` (by-id no sirve: los dos CP2102 traen el mismo número de serie) |
 | Abrir el puerto reinicia el ESP32 (DTR/RTS) | DTR y RTS en bajo antes de abrir |
 | ModemManager/brltty abren los puertos y mandan basura | `diagnostico.py salud` lo detecta |
 | Basura del arranque del ESP32, líneas cortadas | checksum XOR + número de campos por tipo; las líneas malas se cuentan |
