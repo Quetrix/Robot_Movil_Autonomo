@@ -8,7 +8,7 @@ La geometria de sensores esta en geometria_robot.py.
 import math
 
 # ---------------------------------------------------------------- enlaces USB
-BAUDIOS = 230400
+BAUDIOS = 115200
 # Puertos fijos (opcional). Si quedan en None se identifican solos con "?" -> I,LOCO / I,PERC.
 PUERTO_LOCO = None
 PUERTO_PERC = None

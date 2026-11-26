@@ -82,7 +82,7 @@ const float SHARP_MV_CERCA = 2750;   // por encima: < 10 cm (zona ambigua del se
 const uint32_t SHARP_TS_MS = 40;
 
 // ---------------- Enlace ----------------
-const uint32_t BAUDIOS = 230400, DIAG_MS = 1000, KEEPALIVE_MS = 3000;
+const uint32_t BAUDIOS = 115200, DIAG_MS = 1000, KEEPALIVE_MS = 3000;
 
 // ============================================================
 // ESTADO

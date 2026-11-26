@@ -69,7 +69,7 @@ const float RPM_MAX = 120.0f;         // tope de rueda (limite de la tabla de fe
 // ============================================================
 // TEMPORIZACION Y ENLACE
 // ============================================================
-const uint32_t BAUDIOS       = 230400;
+const uint32_t BAUDIOS       = 115200;
 const uint32_t TS_MS         = 20;     // lazo de control y telemetria (50 Hz)
 const uint32_t DIAG_MS       = 1000;
 const uint32_t WATCHDOG_MS   = 500;    // sin V/P en este tiempo -> frena con rampa
