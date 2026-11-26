@@ -25,6 +25,18 @@ Reglas:
 2. Un ESP32 va conectado a la Pi **o** a la laptop, no a las dos.
 3. **Los motores necesitan su batería (2 × 18650) aunque el ESP32 esté en la laptop.** El USB solo alimenta la lógica.
 
+### Si la Pi no está en tu red WiFi actual
+
+Sin red común no hay SSH, así que la red nueva se agrega **en la Pi misma**: monitor HDMI (micro-HDMI en la Pi 5) y teclado, iniciar sesión como `fede`, y en la terminal:
+
+```bash
+sudo nmcli dev wifi list                                  # ver las redes visibles
+sudo nmcli dev wifi connect "NOMBRE_DE_LA_RED" password "CLAVE"
+hostname -I                                               # anota la IP
+```
+
+Aprovecha que tienes monitor y crea también el hotspot del robot (comandos de abajo). Así no vuelves a depender de una red. Alternativa sin monitor: crea en el celular un hotspot con **el mismo nombre y clave** que la red original de la Pi; se conecta sola y entras por SSH con la laptop conectada a ese hotspot.
+
 ### WiFi entre la laptop y la Pi (importante)
 
 Antes se entraba por la red `Percepcion-ESP32`, que creaba el ESP32 del cabezal. **Esa red ya no existe**, porque los ESP32 no usan WiFi. Hay que darle a la Pi su propia red. Se configura una vez, con la Pi todavía en la red de tu casa.
@@ -273,9 +285,8 @@ Recarga el firmware y repite hasta quedar a ±1–2°. `python3 diagnostico.py s
 ### 5.8 Cámara — altura, inclinación, FOV y color
 
 **Montaje:**
-1. Monta la cámara inclinada **15° hacia abajo**. Para fijarla puedes usar un transportador o una app de nivel en el celular apoyada en la carcasa.
-2. Mide la altura de la cara superior de L4 sobre el piso → `H_L4_SOBRE_PISO_MM` en `geometria_robot.py`.
-3. [P] `python3 geometria_robot.py`. Imprime la inclinación óptima para esa altura. Si difiere más de 2° de 15°, ajusta la cámara a ese valor y ponlo en `CAMARA_INCLINACION_DEG`.
+1. Monta la cámara inclinada **12° hacia abajo** (óptimo para la lente a 222 mm; ya está en `geometria_robot.py`). Para fijarla puedes usar un transportador o una app de nivel en el celular apoyada sobre la carcasa de la cámara.
+2. Las alturas ya están cargadas (L4 a 128 mm, TF a 156 mm, lente a 222 mm). Si cambian, `python3 geometria_robot.py` recalcula la inclinación óptima.
 
 **Comprobar la imagen:** [P] `python3 diagnostico.py camara --segundos 10 --fotos 5`.
 - **Debes ver:** ~15 fps y los conos con distancia y rumbo, por ejemplo `(1.48 m +12 piso)`.

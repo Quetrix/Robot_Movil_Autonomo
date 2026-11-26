@@ -16,11 +16,11 @@ Módulo de Python con estos mismos números: [`Proyecto_Final/geometria_robot.py
 | Sensor | Posición en R (x, y) [mm] | Altura del haz sobre la cara superior de L4 | Dirección | Notas |
 |---|---|---|---|---|
 | Eje del servo (TF-Luna) | (62, 0) | — | barrido ±60° (límite del firmware) | |
-| TF-Luna, lente | eje + 7 mm en la dirección del cabezal | 30.75 mm | ángulo del cabezal | offset de 7 mm **[ESTIMADO]**, calibrar |
+| TF-Luna, lente | eje + 7 mm en la dirección del cabezal | 28 mm (lente a 156 mm del piso, medido) | ángulo del cabezal | offset de 7 mm **[ESTIMADO]**, calibrar |
 | Sharp izquierdo, pivote | (22, +36) | 12.05 mm | +yaw, hacia afuera | yaw de 0 a 90°, leído en la escala grabada; por defecto 45° **[AJUSTAR]** |
 | Sharp derecho, pivote | (22, −36) | 12.05 mm | −yaw, hacia afuera | igual que el izquierdo |
 | Cara de cada Sharp | pivote + 20 mm · (cos yaw, ±sin yaw) | 12.05 mm | | 20 mm **[ESTIMADO]**: medir del pivote a la ventana |
-| Cámara (lente) | (36, 0) | ~80 mm | al frente, **15° hacia abajo** (recomendado), medir la real | Arducam IMX219 USB sobre el poste, 640 × 480 (4:3) |
+| Cámara (lente) | (36, 0) | 94 mm (222 mm del piso, medido) | al frente, **12° hacia abajo** (óptimo para esa altura) | Arducam IMX219 USB sobre el poste, 640 × 480 (4:3) |
 | IR discretos KY-032 | uno al frente y otro atrás, en la base L1 | — | | posición sin definir |
 
 Con el yaw por defecto de 45°, la cara del Sharp izquierdo queda en R ≈ (36.1, 50.1) y la del derecho en (36.1, −50.1). En el marco P son (−25.9, ±50.1).
@@ -29,7 +29,7 @@ El TF-Luna nunca ve el robot: no hay nada sobre L4 dentro de su barrido de ±60�
 
 ## Alturas sobre el piso
 
-La altura de L4 sobre el piso depende de los separadores y todavía no está medida **[MEDIR]**. Cuando se mida H_L4 (cara superior de L4), las alturas sobre el piso son: TF-Luna H_L4 + 30.75 mm, Sharp H_L4 + 12.05 mm y cámara H_L4 + ~80 mm. Los obstáculos de la prueba se ajustan a la altura de cada equipo, así que ese es el número que hay que reportar.
+Medido el 25 nov: cara superior de L4 a **128 mm** del piso. Haz del TF-Luna a **156 mm**, Sharp a ~**140 mm** (128 + 12), lente de la cámara a **222 mm**. Los obstáculos de la prueba se ajustan a la altura de cada equipo: hay que pedirlos de **al menos 20 cm**. Una caja de 10 cm (el mínimo del enunciado) pasa por debajo del TF-Luna y de los Sharp, y solo la vería el KY-032 frontal.
 
 ## Pendientes de medición
 

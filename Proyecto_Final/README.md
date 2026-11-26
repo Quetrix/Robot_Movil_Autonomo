@@ -151,7 +151,7 @@ Libres para lo que haga falta: 4, 5, 13, 14, 16–19, 23, 26, 33.
 | Raspberry Pi 5 | power bank 5 V / 3 A por USB-C (`usb_max_current_enable=1`) |
 | Cámara, ESP32 ×2 y sus sensores (TF-Luna, Sharp, KY-032, encoders) | USB de la Pi |
 | Motores | 2 × 18650 → 2 drivers |
-| Servo | hoy LiPo + PowerBoost 1000C. Recomendado: buck/UBEC ≥ 3 A a 6 V desde las 2 × 18650 y 1000 µF en el conector del servo (ver `claude/perception-head-redesign-spec.md` en el proyecto). Sus picos de ~2.5 A superan al PowerBoost: esa es la causa de los cortes y saltos del servo |
+| Servo | buck XL4005 ajustado a **6.0 V** desde las 2 × 18650 (instalado el 25 nov). Ajustar el voltaje con multímetro **antes** de conectar el servo, poner 1000 µF en el conector del servo y unir su GND al común. Con la batería baja (< ~7 V) el buck no alcanza a dar 6 V en los picos: cargar las 18650 antes de las pruebas |
 
 Todos los GND unidos.
 
@@ -175,7 +175,7 @@ Cada paso tiene un criterio para darlo por bueno. Lo marcado [MEDIR]/[CALIBRAR] 
 3. **Odometría** (en el piso): `calibrar.py odometria`. `RADIO = 0.024` no coincide con una rueda de ~60 mm (r ≈ 0.030): puede ser un radio efectivo ya medido, pero hay que confirmarlo. Criterio: una recta de 2 m repetida 3 veces cae a ±3 cm.
 4. **Servo y TF-Luna.** Medir con transportador las anclas −60/0/+60 (`SERVO_US_*`). Luego `calibrar.py lag`. Criterio: el canto de una caja cae en el mismo ángulo a ±2° en los dos sentidos del barrido.
 5. **Sharp.** `calibrar.py sharp` y pegar las tablas. Medir el yaw real en la escala y la distancia pivote–cara (`geometria_robot.py`).
-6. **Cámara.** Montarla a **15° hacia abajo** (ver `Fase_final_analisis.md`). Medir H_L4 y ponerlo en `geometria_robot.py`, luego `python3 geometria_robot.py` dice la inclinación óptima exacta. `calibrar.py camara`. Recalibrar el color **en el lugar de la prueba** con la cámara conectada a la laptop (`herramientas_conos/paso2_calibrar_color.py`) y copiar `config_conos.json` a la Pi. El rango actual tiene V mínimo 222: solo acepta naranja muy iluminado y probablemente falle en el pasillo.
+6. **Cámara.** Montarla a **12° hacia abajo** (óptimo para la lente a 222 mm; alturas medidas el 25 nov ya en `geometria_robot.py`). `calibrar.py camara`. Recalibrar el color **en el lugar de la prueba** con la cámara conectada a la laptop (`herramientas_conos/paso2_calibrar_color.py`) y copiar `config_conos.json` a la Pi. El rango actual tiene V mínimo 222: solo acepta naranja muy iluminado y probablemente falle en el pasillo.
 7. **Tramos.** Corridas de `robot.py` con 1–2 puertas y una caja. Revisar `eventos.txt` (las correcciones de pose al cruzar deben ser de pocos cm a pocas decenas de cm) y las fotos.
 8. **Croquis real.** Si dejan medir el recorrido antes de la prueba, poner las posiciones reales de las puertas en `mapa.py` (la figura no está a escala).
 9. **ArUco.** Pedir al profesor diccionario, tamaño y si va en pared o piso. Poner `ARUCO_LADO_M` y `D_ESTACIONAR`.

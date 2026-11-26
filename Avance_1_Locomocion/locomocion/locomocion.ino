@@ -62,7 +62,7 @@ const float CPR[4] = {903.50f, 939.93f, 903.21f, 905.21f};   // conteos x4 por v
 // ============================================================
 // GEOMETRIA Y LIMITES
 // ============================================================
-const float RADIO  = 0.024f;          // [m] radio usado en la calibracion del Avance 1
+const float RADIO  = 0.029f;          // [m] rueda de 58 mm (medida 25 nov); el Avance 1 usaba 0.024
 const float L_GEOM = 0.08f + 0.07f;   // a + b [m]
 const float RPM_MAX = 120.0f;         // tope de rueda (limite de la tabla de feedforward)
 

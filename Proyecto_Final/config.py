@@ -19,7 +19,7 @@ TIMEOUT_DATOS_S = 0.5         # sin tramas L/T en este tiempo -> enlace caido
 # ---------------------------------------------------------------- locomocion
 # Valores del firmware; la odometria usa los calibrados de abajo.
 CPR = (903.50, 939.93, 903.21, 905.21)
-RADIO_RUEDA = 0.024           # [CALIBRAR] calibrar.py odometria (recta de 2 m)
+RADIO_RUEDA = 0.029           # rueda de 58 mm medida; [CALIBRAR] calibrar.py odometria (recta de 2 m)
 L_GEOM = 0.15                 # a + b [m] [CALIBRAR] calibrar.py odometria (giro)
 RPM_MAX = 120.0
 IR_FRENTE_HABILITADO = True   # False si el KY-032 frontal no esta conectado (GPIO34 flotante)

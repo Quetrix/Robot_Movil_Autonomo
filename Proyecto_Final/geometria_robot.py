@@ -15,7 +15,7 @@ SERVO_LIMITE_DEG = 60.0          # barrido del TF-Luna: -60..+60
 
 # TF-Luna (gira con el servo)
 TF_ORIGEN_CABEZAL_X_MM = 7.0     # [ESTIMADO] lente delante del eje
-TF_ALTURA_SOBRE_L4_MM = 30.75
+TF_ALTURA_SOBRE_L4_MM = 28.0      # medido: lente a 156 mm del piso (25 nov)
 
 # Sharp GP2Y0A21 (fijos en L4)
 SHARP_YAW_DEG = 45.0             # [AJUSTAR] leido en la escala grabada, 0..90 hacia afuera
@@ -27,10 +27,10 @@ SHARP_ALTURA_SOBRE_L4_MM = 12.05
 # Camara (Arducam IMX219 USB) sobre el poste
 CAMARA_X_MM = 36.0
 CAMARA_Y_MM = 0.0
-CAMARA_ALTURA_SOBRE_L4_MM = 80.0
-CAMARA_INCLINACION_DEG = 15.0    # hacia abajo; valor recomendado, ver inclinacion_optima()
+CAMARA_ALTURA_SOBRE_L4_MM = 94.0  # medido: lente a 222 mm del piso con la camara recta (25 nov)
+CAMARA_INCLINACION_DEG = 12.0    # hacia abajo; optimo para lente a 222 mm (inclinacion_optima)
 
-H_L4_SOBRE_PISO_MM = None        # [MEDIR] cara superior de la placa L4
+H_L4_SOBRE_PISO_MM = 128.0       # medido 25 nov: cara superior de L4
 H_L4_ESTIMADA_MM = 180.0         # solo para calcular mientras no se mida
 
 
