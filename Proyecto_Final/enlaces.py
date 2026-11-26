@@ -52,15 +52,20 @@ def candidatos():
 
 
 def identificar(ruta, espera_s=3.0):
-    """Devuelve 'LOCO', 'PERC' o None.
+    """Devuelve 'LOCO', 'PERC' o None (ver sondear)."""
+    return sondear(ruta, espera_s)[0]
 
-    En Linux abrir el puerto puede reiniciar el ESP32 (las lineas DTR/RTS cambian al abrir, y la
-    placa las usa para el reset automatico). Por eso se espera hasta 3 s preguntando '?' cada
-    0.3 s: el ESP32 tarda ~0.5 s en arrancar y tambien se identifica solo al encender."""
+
+def sondear(ruta, espera_s=3.0):
+    """(quien, detalle). detalle = error al abrir o los primeros bytes recibidos, para diagnostico.
+
+    En Linux abrir el puerto puede reiniciar el ESP32 (DTR/RTS cambian al abrir y la placa los
+    usa para el reset automatico). Por eso se espera hasta 3 s preguntando '?' cada 0.3 s."""
     try:
         s = abrir_puerto(ruta, timeout=0.1)
-    except Exception:
-        return None
+    except Exception as e:
+        return None, "no se pudo abrir: %s" % e
+    recibido = b""
     try:
         fin = time.monotonic() + espera_s
         t_pregunta = 0.0
@@ -69,13 +74,19 @@ def identificar(ruta, espera_s=3.0):
             if time.monotonic() - t_pregunta > 0.3:
                 s.write(b"?\n")
                 t_pregunta = time.monotonic()
-            resto += s.read(max(1, s.in_waiting))
+            datos = s.read(max(1, s.in_waiting))
+            recibido += datos
+            resto += datos
             *lineas, resto = resto.split(b"\n")
             for linea in lineas:
                 r = P.separar(linea)
                 if r and r[0] == "I" and r[1]:
-                    return r[1][0]
-        return None
+                    return r[1][0], ""
+        if not recibido:
+            return None, "no llego ningun byte en %.0f s (ESP32 sin firmware corriendo, en reset o en modo descarga)" % espera_s
+        return None, "llegaron %d bytes pero ninguna identificacion; inicio: %r" % (len(recibido), recibido[:120])
+    except Exception as e:
+        return None, "error leyendo: %s" % e
     finally:
         s.close()
 
