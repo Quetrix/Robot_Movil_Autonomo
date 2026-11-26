@@ -40,6 +40,19 @@ def separar(linea: bytes):
         return None
     if linea[:1] == b"#":
         return "#", linea[1:].decode(errors="replace").strip()
+    r = _separar(linea)
+    if r is None:
+        # Basura pegada al inicio (p. ej. los mensajes del arranque del ESP32 a otro baud):
+        # reintentar desde el ultimo inicio de trama conocido; el checksum confirma.
+        for i in range(len(linea) - 2, 0, -1):
+            if linea[i:i + 1] in b"LTSDI" and linea[i + 1:i + 2] == b"," and linea[i - 1:i] != b",":
+                r = _separar(linea[i:])
+                if r is not None:
+                    return r
+    return r
+
+
+def _separar(linea):
     cuerpo, ast, hh = linea.rpartition(b"*")
     if not ast or len(hh) != 2:
         return None

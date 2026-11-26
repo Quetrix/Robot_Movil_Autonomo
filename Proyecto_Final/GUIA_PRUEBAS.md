@@ -128,6 +128,37 @@ sudo systemctl disable --now ModemManager 2>/dev/null
 
 [P] `python3 diagnostico.py puertos`. **Debes ver:** una línea terminada en `LOCO` y otra en `PERC`. Si quieres fijarlas, copia esas rutas `/dev/serial/by-path/...` en `PUERTO_LOCO` y `PUERTO_PERC` de `config.py`.
 
+### 2.1 Si `puertos` no identifica un ESP32
+
+`puertos` imprime, debajo de cada puerto, el motivo real:
+
+| Mensaje | Qué significa | Qué hacer |
+|---|---|---|
+| `SIN PERMISO` | El usuario no está en el grupo `dialout` | `sudo usermod -aG dialout $USER`, salir y volver a entrar por SSH; `groups` debe incluir `dialout` |
+| `no se pudo abrir: ...` | Otro programa tiene el puerto, o hay un error del sistema (el texto lo dice) | `sudo fuser -v /dev/ttyUSB*` debe salir vacío; cerrar lo que aparezca |
+| `no llego ningun byte` | El ESP32 no está corriendo su programa (en reset, en modo de carga o sin firmware) | Prueba directa de abajo |
+| `llegaron N bytes pero ninguna identificacion` | El ESP32 transmite pero no se entiende la respuesta | Mándame esa línea completa (trae los primeros bytes) |
+
+**Prueba directa, sin los scripts del proyecto** [P], para cada puerto (`/dev/ttyUSB0` y `/dev/ttyUSB1`):
+
+```bash
+stty -F /dev/ttyUSB0 230400 raw -echo
+timeout 3 cat /dev/ttyUSB0 | head -c 400; echo
+```
+
+- **Salen líneas `L,...` o `T,...`:** el ESP32 y la velocidad están bien; el problema está en el script. Mándame la salida de `puertos`.
+- **No sale nada:** mira el arranque a 115200 y, mientras corre, presiona el botón EN de la placa:
+  ```bash
+  stty -F /dev/ttyUSB0 115200 raw -echo
+  timeout 5 cat /dev/ttyUSB0
+  ```
+
+  | Mensaje del arranque | Significado |
+  |---|---|
+  | `boot:0x13 (SPI_FAST_FLASH_BOOT)` | Arranque normal |
+  | `boot:0x3 (DOWNLOAD_BOOT...)` o `waiting for download` | Quedó en modo de carga |
+  | `flash read err` repetido | Un pin de arranque está mal polarizado (GPIO12 en alto al encender) |
+
 ## 3. Cómo se revisa que no se pierdan tramas
 
 Hay tres niveles. Se usan juntos.

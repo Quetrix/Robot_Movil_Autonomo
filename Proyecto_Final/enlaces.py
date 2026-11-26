@@ -51,30 +51,42 @@ def candidatos():
     return rutas
 
 
-def identificar(ruta, espera_s=1.5, intentos=2):
-    """Devuelve 'LOCO', 'PERC' o None. Dos intentos: si abrir el puerto reinicia el ESP32, el
-    primero puede llegar mientras arranca."""
-    for _ in range(intentos):
-        quien = _identificar(ruta, espera_s)
-        if quien:
-            return quien
-    return None
+def identificar(ruta, espera_s=3.0):
+    """Devuelve 'LOCO', 'PERC' o None (ver sondear)."""
+    return sondear(ruta, espera_s)[0]
 
 
-def _identificar(ruta, espera_s):
+def sondear(ruta, espera_s=3.0):
+    """(quien, detalle). detalle = error al abrir o los primeros bytes recibidos, para diagnostico.
+
+    En Linux abrir el puerto puede reiniciar el ESP32 (DTR/RTS cambian al abrir y la placa los
+    usa para el reset automatico). Por eso se espera hasta 3 s preguntando '?' cada 0.3 s."""
     try:
         s = abrir_puerto(ruta, timeout=0.1)
-    except Exception:
-        return None
+    except Exception as e:
+        return None, "no se pudo abrir: %s" % e
+    recibido = b""
     try:
-        s.reset_input_buffer()
         fin = time.monotonic() + espera_s
-        s.write(b"?\n")
+        t_pregunta = 0.0
+        resto = b""
         while time.monotonic() < fin:
-            r = P.separar(s.readline())
-            if r and r[0] == "I" and r[1]:
-                return r[1][0]
-        return None
+            if time.monotonic() - t_pregunta > 0.3:
+                s.write(b"?\n")
+                t_pregunta = time.monotonic()
+            datos = s.read(max(1, s.in_waiting))
+            recibido += datos
+            resto += datos
+            *lineas, resto = resto.split(b"\n")
+            for linea in lineas:
+                r = P.separar(linea)
+                if r and r[0] == "I" and r[1]:
+                    return r[1][0], ""
+        if not recibido:
+            return None, "no llego ningun byte en %.0f s (ESP32 sin firmware corriendo, en reset o en modo descarga)" % espera_s
+        return None, "llegaron %d bytes pero ninguna identificacion; inicio: %r" % (len(recibido), recibido[:120])
+    except Exception as e:
+        return None, "error leyendo: %s" % e
     finally:
         s.close()
 

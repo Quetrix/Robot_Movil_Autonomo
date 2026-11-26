@@ -19,7 +19,7 @@ import sys
 import time
 
 import config
-from enlaces import Locomocion, Percepcion, buscar_puertos, candidatos, identificar
+from enlaces import Locomocion, Percepcion, buscar_puertos, candidatos, sondear
 from falda import Falda
 from odometria import Odometria
 from registro import Registro
@@ -49,13 +49,12 @@ def cmd_puertos(_):
     if not rutas:
         print("Ningun puerto serial: revisar cables USB (que sean de datos, no solo de carga)")
     for ruta in rutas:
-        quien = identificar(ruta) if os.path.exists(ruta) else None
-        if quien:
-            print("%-70s %s" % (ruta, quien))
-        elif not os.access(ruta, os.R_OK | os.W_OK):
-            print("%-70s SIN PERMISO: sudo usermod -aG dialout $USER, luego salir y volver a entrar" % ruta)
-        else:
-            print("%-70s sin respuesta: firmware viejo (115200 baud) o puerto abierto por otro programa" % ruta)
+        real = os.path.realpath(ruta)
+        if not os.access(ruta, os.R_OK | os.W_OK):
+            print("%s (%s)\n   SIN PERMISO: sudo usermod -aG dialout $USER, luego salir y volver a entrar" % (ruta, real))
+            continue
+        quien, detalle = sondear(ruta)
+        print("%s (%s)\n   %s" % (ruta, real, quien or detalle))
     print("\nPara fijarlos, copiar la ruta /dev/serial/by-path/... en PUERTO_LOCO / PUERTO_PERC de config.py")
 
 
