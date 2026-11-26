@@ -37,7 +37,12 @@ def candidatos():
     """Puertos seriales posibles. En Linux se usan /dev/serial/by-path: dependen del puerto USB
     fisico y no cambian. /dev/serial/by-id NO sirve con dos ESP32 iguales: los CP2102 traen todos
     el mismo numero de serie (0001) y solo queda un enlace para los dos. En Windows/macOS: COMx."""
-    rutas = sorted(glob.glob("/dev/serial/by-path/*"))
+    rutas, vistos = [], set()
+    for r in sorted(glob.glob("/dev/serial/by-path/*"), key=lambda r: ("usbv2" in r, r)):
+        real = os.path.realpath(r)        # udev crea dos nombres (usb- y usbv2-) por dispositivo
+        if real not in vistos:
+            vistos.add(real)
+            rutas.append(r)
     if len(rutas) < len(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*")):
         rutas = sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*"))
     if not rutas and serial is not None:
@@ -46,8 +51,17 @@ def candidatos():
     return rutas
 
 
-def identificar(ruta, espera_s=1.5):
-    """Devuelve 'LOCO', 'PERC' o None."""
+def identificar(ruta, espera_s=1.5, intentos=2):
+    """Devuelve 'LOCO', 'PERC' o None. Dos intentos: si abrir el puerto reinicia el ESP32, el
+    primero puede llegar mientras arranca."""
+    for _ in range(intentos):
+        quien = _identificar(ruta, espera_s)
+        if quien:
+            return quien
+    return None
+
+
+def _identificar(ruta, espera_s):
     try:
         s = abrir_puerto(ruta, timeout=0.1)
     except Exception:
