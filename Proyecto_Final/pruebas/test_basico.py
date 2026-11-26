@@ -39,6 +39,10 @@ class Protocolo(unittest.TestCase):
         self.assertEqual(P.separar(b"# hola"), ("#", "hola"))
         self.assertIsNone(P.separar(b"\xff\xfeets Jun  8 2016 00:22:57"))
 
+    def test_basura_de_arranque(self):
+        ok = P.armar("I", "LOCO", "v").strip()
+        self.assertEqual(P.separar(b"\xff\x00ets Jun  8 2016 rst:0x1" + ok), ("I", ["LOCO", "v"]))
+
     def test_campos_iguales_al_firmware(self):
         """El numero de campos de cada trama coincide con los snprintf del firmware."""
         for nombre, ruta in FIRMWARE.items():

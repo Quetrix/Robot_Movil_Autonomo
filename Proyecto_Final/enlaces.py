@@ -51,29 +51,30 @@ def candidatos():
     return rutas
 
 
-def identificar(ruta, espera_s=1.5, intentos=2):
-    """Devuelve 'LOCO', 'PERC' o None. Dos intentos: si abrir el puerto reinicia el ESP32, el
-    primero puede llegar mientras arranca."""
-    for _ in range(intentos):
-        quien = _identificar(ruta, espera_s)
-        if quien:
-            return quien
-    return None
+def identificar(ruta, espera_s=3.0):
+    """Devuelve 'LOCO', 'PERC' o None.
 
-
-def _identificar(ruta, espera_s):
+    En Linux abrir el puerto puede reiniciar el ESP32 (las lineas DTR/RTS cambian al abrir, y la
+    placa las usa para el reset automatico). Por eso se espera hasta 3 s preguntando '?' cada
+    0.3 s: el ESP32 tarda ~0.5 s en arrancar y tambien se identifica solo al encender."""
     try:
         s = abrir_puerto(ruta, timeout=0.1)
     except Exception:
         return None
     try:
-        s.reset_input_buffer()
         fin = time.monotonic() + espera_s
-        s.write(b"?\n")
+        t_pregunta = 0.0
+        resto = b""
         while time.monotonic() < fin:
-            r = P.separar(s.readline())
-            if r and r[0] == "I" and r[1]:
-                return r[1][0]
+            if time.monotonic() - t_pregunta > 0.3:
+                s.write(b"?\n")
+                t_pregunta = time.monotonic()
+            resto += s.read(max(1, s.in_waiting))
+            *lineas, resto = resto.split(b"\n")
+            for linea in lineas:
+                r = P.separar(linea)
+                if r and r[0] == "I" and r[1]:
+                    return r[1][0]
         return None
     finally:
         s.close()
