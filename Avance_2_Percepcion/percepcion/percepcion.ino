@@ -19,7 +19,7 @@
 // trayectoria comandada y el angulo de cada muestra es el comandado
 // LAG ms antes (un LAG por sentido, calibrable con el comando Z).
 //
-// Protocolo (230400 baud, lineas ASCII, sufijo *HH = XOR opcional en
+// Protocolo (115200 baud, lineas ASCII, sufijo *HH = XOR opcional en
 // lo que llega y siempre en lo que sale). Marco: angulos antihorarios
 // positivos (izquierda), 0 = frente.
 //   Pi -> ESP32
@@ -43,8 +43,9 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <math.h>
+#include "driver/mcpwm_prelude.h"
 
-const char VERSION[] = "perc-final-1.0";
+const char VERSION[] = "perc-final-1.1";
 
 // ---------------- Pines ----------------
 const int SHARP_PIN[2] = {34, 35};   // izquierdo, derecho (ADC1)
@@ -133,14 +134,52 @@ uint32_t pulsoUs(float th) {
                     : SERVO_US_CENTRO + (SERVO_US_CENTRO - SERVO_US_MENOS60) * a / 60;
   return (uint32_t)lroundf(us);
 }
+// PWM del servo con MCPWM (1 tick = 1 us, periodo 20000 us). En v1.0 se
+// usaba ledcWrite, que en este core bloqueaba ~37 ms por llamada y bajaba
+// el TF-Luna a 25 Hz durante el barrido. El comparador de MCPWM solo
+// escribe un registro sombra que se aplica al inicio del siguiente
+// periodo, asi que no bloquea.
+mcpwm_timer_handle_t pwmTimer = nullptr;
+mcpwm_oper_handle_t pwmOper = nullptr;
+mcpwm_cmpr_handle_t pwmCmp = nullptr;
+mcpwm_gen_handle_t pwmGen = nullptr;
+bool servoIniciar() {
+  mcpwm_timer_config_t tc = {};
+  tc.group_id = 0;
+  tc.clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT;
+  tc.resolution_hz = 1000000;
+  tc.count_mode = MCPWM_TIMER_COUNT_MODE_UP;
+  tc.period_ticks = 20000;
+  mcpwm_operator_config_t oc = {};
+  oc.group_id = 0;
+  mcpwm_comparator_config_t cc = {};
+  cc.flags.update_cmp_on_tez = true;
+  mcpwm_generator_config_t gc = {};
+  gc.gen_gpio_num = SERVO;
+  bool ok = mcpwm_new_timer(&tc, &pwmTimer) == ESP_OK &&
+            mcpwm_new_operator(&oc, &pwmOper) == ESP_OK &&
+            mcpwm_operator_connect_timer(pwmOper, pwmTimer) == ESP_OK &&
+            mcpwm_new_comparator(pwmOper, &cc, &pwmCmp) == ESP_OK &&
+            mcpwm_new_generator(pwmOper, &gc, &pwmGen) == ESP_OK &&
+            mcpwm_comparator_set_compare_value(pwmCmp, 1500) == ESP_OK &&
+            mcpwm_generator_set_action_on_timer_event(pwmGen,
+                MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, MCPWM_TIMER_EVENT_EMPTY,
+                                             MCPWM_GEN_ACTION_HIGH)) == ESP_OK &&
+            mcpwm_generator_set_action_on_compare_event(pwmGen,
+                MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, pwmCmp,
+                                               MCPWM_GEN_ACTION_LOW)) == ESP_OK &&
+            mcpwm_generator_set_force_level(pwmGen, 0, true) == ESP_OK &&   // arranca en LOW
+            mcpwm_timer_enable(pwmTimer) == ESP_OK &&
+            mcpwm_timer_start_stop(pwmTimer, MCPWM_TIMER_START_NO_STOP) == ESP_OK;
+  return ok;
+}
 void escribirServo(float th) {
-  if (!servoConectado) { ledcAttach(SERVO, 50, 16); servoConectado = true; }
-  ledcWrite(SERVO, (pulsoUs(th) * 65536UL + 10000UL) / 20000UL);
+  if (!pwmGen) return;
+  mcpwm_comparator_set_compare_value(pwmCmp, pulsoUs(th));
+  if (!servoConectado) { mcpwm_generator_set_force_level(pwmGen, -1, true); servoConectado = true; }
 }
 void soltarServo() {
-  if (servoConectado) ledcDetach(SERVO);
-  pinMode(SERVO, OUTPUT);
-  digitalWrite(SERVO, LOW);
+  if (pwmGen) mcpwm_generator_set_force_level(pwmGen, 0, true);   // senal en LOW fijo
   servoConectado = false;
   modo = SIN_SENAL;
   vCmd = 0;
@@ -382,12 +421,14 @@ void setup() {
   pinMode(LED_ESTADO, OUTPUT);
   pinMode(IR_TRASERO, INPUT_PULLUP);
   pinMode(TF_DR, INPUT);
+  bool pwmOk = servoIniciar();
   soltarServo();                        // sin movimiento hasta que la Pi lo pida
   analogReadResolution(12);
   for (int i = 0; i < 2; i++) analogSetPinAttenuation(SHARP_PIN[i], ADC_11db);
   Wire.begin(PIN_SDA, PIN_SCL, 400000);
   Wire.setTimeOut(10);
   identificar();
+  if (!pwmOk) mensaje("MCPWM del servo NO inicio");
   tfIniciar();
 }
 
