@@ -19,7 +19,7 @@
 // trayectoria comandada y el angulo de cada muestra es el comandado
 // LAG ms antes (un LAG por sentido, calibrable con el comando Z).
 //
-// Protocolo (115200 baud, lineas ASCII, sufijo *HH = XOR opcional en
+// Protocolo (230400 baud, lineas ASCII, sufijo *HH = XOR opcional en
 // lo que llega y siempre en lo que sale). Marco: angulos antihorarios
 // positivos (izquierda), 0 = frente.
 //   Pi -> ESP32
@@ -93,7 +93,6 @@ float amplitud = 60, velocidad = 150, anguloFijo = 0;
 float thCmd = 0, vCmd = 0;           // consigna actual [deg, deg/s]
 int sentido = 1;
 bool servoConectado = false;
-uint32_t servoMaxUs = 0;            // DIAGNOSTICO TEMPORAL: duracion maxima de escribirServo
 
 struct Consigna { uint32_t ms; float th; float v; };
 const int N_HIST = 64;               // 64 x 20 ms = 1.28 s de historia
@@ -135,11 +134,8 @@ uint32_t pulsoUs(float th) {
   return (uint32_t)lroundf(us);
 }
 void escribirServo(float th) {
-  uint32_t t = micros();               // DIAGNOSTICO TEMPORAL
   if (!servoConectado) { ledcAttach(SERVO, 50, 16); servoConectado = true; }
   ledcWrite(SERVO, (pulsoUs(th) * 65536UL + 10000UL) / 20000UL);
-  uint32_t d = micros() - t;           // DIAGNOSTICO TEMPORAL
-  if (d > servoMaxUs) servoMaxUs = d;
 }
 void soltarServo() {
   if (servoConectado) ledcDetach(SERVO);
@@ -417,10 +413,6 @@ void loop() {
     tfValidasS = tfValidas;
     tfValidas = 0;
     enviarDiagnostico();
-    char m[32];                         // DIAGNOSTICO TEMPORAL
-    snprintf(m, sizeof(m), "servo_max_us=%lu", (unsigned long)servoMaxUs);
-    mensaje(m);
-    servoMaxUs = 0;
   }
   digitalWrite(LED_ESTADO, modo == BARRIDO ? HIGH : (keepaliveVencido && ((ahora / 250) & 1)));
   uint32_t dur = micros() - t0;
