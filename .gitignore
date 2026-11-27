@@ -8,3 +8,9 @@ Thumbs.db
 __pycache__/
 *.pyc
 corrida_*.csv
+
+# Proyecto final
+Proyecto_Final/registros/
+Proyecto_Final/sim_trayectoria.png
+Proyecto_Final/mapa.png
+Proyecto_Final/herramientas_conos/fotos/

@@ -1,0 +1,20 @@
+{
+  "camara": 0,
+  "ancho": 640,
+  "alto": 480,
+  "fps": 15,
+  "autofoco": true,
+  "fov_horizontal_grados": 60.0,
+  "alto_cono_m": 0.18,
+  "hsv_min": [
+    177,
+    45,
+    222
+  ],
+  "hsv_max": [
+    6,
+    255,
+    255
+  ],
+  "area_minima_frac": 0.0004
+}

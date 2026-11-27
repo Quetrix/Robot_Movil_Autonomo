@@ -7,29 +7,32 @@ El robot holonómico con ruedas Mecanum debe ir desde el aula de origen hasta el
 ## Arquitectura
 
 ```
- Raspberry Pi 5 ── NAVEGACIÓN: cámara, conos y ArUco, comportamientos, odometría
-     │  vx, vy, θ̇  (serial, maestro)          ▲  matriz [ángulo; distancia]
-     ▼                                         │
+ Raspberry Pi 5 ── NAVEGACIÓN: cámara (conos, ArUco), odometría, falda, comportamientos, registro
+     │  USB: V vx vy wz (mm/s, °/s)            ▲  USB: muestras TF-Luna y Sharp con ángulo y tiempo
+     ▼  ▲ conteos de encoders (50 Hz)          │
  ESP32 ── LOCOMOCIÓN                        ESP32 ── PERCEPCIÓN
- 4 motores CD + encoders, PI por rueda,     servo MG996R + 2 Sharp GP2Y0A21
- botón e IR discretos de paro               + TF-Luna, barrido y fusión
+ 4 motores CD + encoders, PI por rueda,     servo MG996R (barrido del TF-Luna),
+ botón de arranque/paro, KY-032 frontal     2 Sharp fijos, KY-032 trasero
 ```
 
 ## Estructura del repositorio
 
 | Carpeta | Contenido | Estado |
 |---|---|---|
-| [`Avance_1_Locomocion/`](Avance_1_Locomocion/) | Firmware de locomoción (ESP32): versión actual `locomocion_esp32_ir_frontal`, variantes anteriores, binario de respaldo e historial | Presentado el 6 oct |
-| [`Avance_2_Percepcion/`](Avance_2_Percepcion/) | Firmware de percepción (ESP32) | Presentado el 27 oct |
-| [`Tarea_Integracion/`](Tarea_Integracion/) | Tarea 8: comportamientos de Braitenberg en la Raspberry Pi con ambos módulos; guía de armado, conexión y puesta en marcha | Entrega 10 nov |
+| [`Avance_1_Locomocion/`](Avance_1_Locomocion/) | Firmware de locomoción (ESP32) para la entrega final: `locomocion/`. Versiones anteriores, binario del Avance 1 e historial en `_respaldo/` | Presentado el 6 oct |
+| [`Avance_2_Percepcion/`](Avance_2_Percepcion/) | Firmware de percepción (ESP32) para la entrega final: `percepcion/`. Versión del Avance 2 en `_respaldo/` | Presentado el 27 oct |
+| [`Tarea_Integracion/`](Tarea_Integracion/) | Tarea 8 (Braitenberg). Usa los firmwares de `_respaldo/`: no es compatible con los finales | Entregada 10 nov |
+| [`Proyecto_Final/`](Proyecto_Final/) | Programa de la Raspberry Pi para la prueba: navegación, visión, odometría, diagnóstico, calibraciones, registro y simulador. **Empezar por su README** | En pruebas |
+| `Documentos/Fase_final_analisis.md` | Estado, decisiones y revisión crítica de la fase final | |
+| `Documentos/Geometria_robot.md` | Posición y orientación de todos los sensores y marcos de referencia (montaje final) | |
 | `Documentos/Enunciados/` | Enunciado del proyecto, guías de los módulos y lista de materiales | |
 | `Documentos/Datasheets/` | ESP32-WROOM-32, expansion board, Sharp GP2Y0A21, KY-032, TF-Luna (datasheet y manual), HC-SR04 | |
 
-Cada carpeta de módulo tiene un README con el funcionamiento, el **pinout completo**, todos los parámetros y los pendientes para la entrega final.
+El pinout final de los dos ESP32, el protocolo y el plan de pruebas están en `Proyecto_Final/README.md`.
 
 ## Hardware
 
-Chasís de aluminio de 120 × 180 mm, 4 ruedas Mecanum, 4 motores CD con encoder magnético, 2 drivers de 2 canales, batería LiPo con PowerBoost a 5 V, 2 ESP32-WROOM-32 DevKit con expansion board, Raspberry Pi 5 (8 GB), botón, 2 IR discretos KY-032, 2 Sharp GP2Y0A21YK0F, TF-Luna y servo MG996R. Todavía no hay IMU, y el ESP32 de locomoción no tiene pines libres para conectarla.
+Chasís de aluminio de 120 × 180 mm, 4 ruedas Mecanum, 4 motores CD con encoder magnético, 2 drivers de 2 canales, 2 × 18650 para los motores, LiPo con PowerBoost para el servo, power bank de 5 V / 3 A para la Pi, 2 ESP32-WROOM-32 DevKit con expansion board, Raspberry Pi 5 (8 GB), botón, 2 IR discretos KY-032, 2 Sharp GP2Y0A21YK0F, TF-Luna y servo MG996R. No se usa IMU: el rumbo se corrige con los conos de cada puerta.
 
 ## Fechas
 

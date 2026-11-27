@@ -11,8 +11,8 @@ Arquitectura base (se reutiliza en el proyecto final):
         -> diferencial virtual (v, w) -> capa de seguridad -> comando H
 
 Firmware esperado:
-  locomocion: Avance_1_Locomocion/locomocion_esp32_ir_frontal
-  cabezal:    Avance_2_Percepcion/Percepcion_MG996_180 (queda fijo en CENTER)
+  locomocion: Avance_1_Locomocion/_respaldo/locomocion_esp32_ir_frontal
+  cabezal:    Avance_2_Percepcion/_respaldo/Percepcion_MG996_180 (queda fijo en CENTER)
 
 Seguridad:
   - Se envia "H" (no "V") a 10 Hz: si el script, la Pi o el USB fallan, el ESP32 frena solo

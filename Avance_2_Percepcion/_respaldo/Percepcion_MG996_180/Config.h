@@ -1,13 +1,24 @@
 #pragma once
 #include <stdint.h>
 namespace cfg {
-constexpr char VERSION[]="mg996-matriz-1.1";
+constexpr char VERSION[]="mg996-matriz-1.2-sharp-fijos";
 constexpr uint8_t IR_PINS[2]={34,35},SDA=21,SCL=22,TF_READY=27,SERVO=25,TF_ADDRESS=0x10;
 constexpr char SSID[]="Percepcion-ESP32",PASSWORD[]="percepcion26";
-constexpr float BETA_DEG[3]={60,-60,0}; // Sharp izquierdo, derecho, TF-Luna.
-constexpr float ORIGIN_X_MM[3]={0,0,0},ORIGIN_Y_MM[3]={0,0,0};
-constexpr bool GEOMETRY_MEASURED=false; // Medir desde el eje del servo antes de afirmar precision.
-constexpr float HEAD_MIN_DEG=-90,HEAD_MAX_DEG=90,SCAN_STEP_DEG=5;
+// ---- Geometria (montaje v2, nov 2026). Fuente: Documentos/Geometria_robot.md ----
+// Marco de percepcion: origen = eje del servo, X adelante, Y izquierda, angulos antihorarios.
+// El eje del servo esta 62 mm adelante del centro del chasis (placa L4, centrado en Y).
+constexpr float AXIS_FROM_CENTER_X_MM=62,AXIS_FROM_CENTER_Y_MM=0;
+// Solo el TF-Luna gira con el servo; los Sharp estan fijos en la placa L4.
+constexpr bool ON_HEAD[3]={false,false,true}; // Sharp izquierdo, derecho, TF-Luna.
+// Sharp: pivote del soporte a (-40, +/-36) del eje; giro hacia afuera leido en la escala grabada.
+constexpr float SHARP_YAW_DEG=45;              // [AJUSTAR] valor real de la escala (0..90)
+constexpr float SHARP_PIVOT_X_MM=-40,SHARP_PIVOT_Y_MM=36;
+constexpr float SHARP_FACE_FROM_PIVOT_MM=20;   // [ESTIMADO] pivote -> cara del sensor, medir
+constexpr float BETA_DEG[3]={SHARP_YAW_DEG,-SHARP_YAW_DEG,0};
+// TF-Luna: origen en el marco del cabezal (lente ~7 mm delante del eje, calibrar).
+constexpr float TF_ORIGIN_X_MM=7,TF_ORIGIN_Y_MM=0;
+constexpr bool GEOMETRY_MEASURED=false; // true cuando SHARP_YAW y SHARP_FACE esten medidos.
+constexpr float HEAD_MIN_DEG=-60,HEAD_MAX_DEG=60,SCAN_STEP_DEG=5;
 constexpr int SERVO_SIGN=1; // Cambiar a -1 si aumenta hacia la derecha fisica.
 // Anclas INICIALES, no calibradas. Solo el controlador convierte grados a PWM.
 // Aproximacion conservadora basada en 1000..2000 us para -90..90 grados.
@@ -27,6 +38,7 @@ constexpr float DIVIDER_RATIO[2]={1,1};
 constexpr bool TF_USE_LEGACY_CAL=true;
 constexpr float TF_SCALE=1.0068f,TF_OFFSET_CM=-1.13f,TF_LEGACY_MIN_MM=200,TF_LEGACY_MAX_MM=2100;
 constexpr int CAL_MAX_POINTS=12;
+static_assert(SHARP_YAW_DEG>=0&&SHARP_YAW_DEG<=90,"Ranura de los Sharp: 0..90 grados");
 static_assert(HEAD_MIN_DEG>=-90 && HEAD_MAX_DEG<=90 && SCAN_STEP_DEG>0,"Revisar limites mecanicos calibrados");
 static_assert(POSE_PERIOD_MS>=STEP_SETTLE_MS+IR_OPTICAL_WAIT_MS,"Falta tiempo para adquirir en reposo");
 }
