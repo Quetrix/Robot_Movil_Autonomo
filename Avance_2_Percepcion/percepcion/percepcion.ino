@@ -45,7 +45,7 @@
 #include <math.h>
 #include "driver/mcpwm_prelude.h"
 
-const char VERSION[] = "perc-final-1.2";
+const char VERSION[] = "perc-final-1.3";
 
 // ---------------- Pines ----------------
 const int SHARP_PIN[2] = {34, 35};   // izquierdo, derecho (ADC1)
@@ -57,7 +57,7 @@ const int LED_ESTADO = 2;
 
 // ---------------- Servo ----------------
 // Anclas iniciales, no calibradas: medir -60, 0 y +60 grados en ESTE servo.
-const float SERVO_US_MENOS60 = 1222, SERVO_US_CENTRO = 1555, SERVO_US_MAS60 = 1888;  // centro: F 8..12 de las anclas viejas miraba al frente (26 nov); +55 us a las tres
+const float SERVO_US_MENOS60 = 1112, SERVO_US_CENTRO = 1445, SERVO_US_MAS60 = 1778;  // centro: F -9..-12 de las anclas viejas (1167/1500/1833) miraba al frente (26 nov); -55 us a las tres
 const int SERVO_SIGNO = 1;           // -1 si un angulo positivo gira a la derecha
 const float SERVO_LIMITE_DEG = 60;   // limite de firmware (sin topes mecanicos)
 const float ACEL_DPS2 = 1500;        // rampa en los extremos del barrido
