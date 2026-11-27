@@ -244,14 +244,38 @@ El robot se mueve solo si esta armado (boton o tecla r)."""
 
 
 def cmd_servo(args):
+    """Abrir el puerto reinicia el ESP32 (~0.6 s de setup). Antes se enviaba el comando y se
+    cerraba a los 0.3 s, en pleno setup: el comando no llegaba a ejecutarse. Ahora se espera a
+    que el lazo del ESP32 corra (primera trama S o T), se envia y se mantiene el puerto abierto
+    con keepalive hasta Ctrl+C. Cerrar el puerto puede volver a reiniciarlo (servo sin senal y
+    Z perdido), por eso Z solo sirve dentro del mismo programa que lo usa."""
     reg = Registro(activo=False)
     _, _, _, perc = abrir(reg, ("PERC",))
-    if perc:
-        perc.enviar(args.comando, *args.valores)
+    if not perc:
+        return
+    fin = time.monotonic() + 4.0
+    while perc.ultimo_s is None and perc.ultimo_t is None and time.monotonic() < fin:
+        time.sleep(0.05)
+    if perc.ultimo_s is None and perc.ultimo_t is None:
+        print("!! el ESP32 de percepcion no envio tramas en 4 s | perc:", perc.stats)
+        return
+    perc.enviar(args.comando, *args.valores)
+    print("enviado", args.comando, args.valores, "(version %s)" % perc.version)
+    if args.comando == "R":
         time.sleep(0.3)
-        print("enviado", args.comando, args.valores, "| perc:", perc.stats)
-        if args.comando in ("B", "F"):
-            print("El ESP32 vuelve al centro si no recibe nada en 3 s (keepalive); para mantenerlo usar monitor.")
+        return
+    print("Manteniendo el comando; Ctrl+C para salir (al salir el ESP32 puede reiniciarse y soltar el servo).")
+    try:
+        while True:
+            time.sleep(0.5)
+            perc.keepalive()
+            t = perc.ultimo_t
+            if t:
+                print("TF %+6.1f deg %5d mm amp %5d flags %d" % (t[2] / 100, t[3], t[4], t[5]), flush=True)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        perc.detener()
 
 
 def cmd_camara(args):
