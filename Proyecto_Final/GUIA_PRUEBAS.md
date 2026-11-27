@@ -203,20 +203,23 @@ Todas imprimen los valores para pegar y guardan su CSV en `registros/<fecha>/`. 
 
 ### 5.1 Feedforward de los motores — `calibrar.py ff`
 
-**Para qué:** las tablas del firmware se midieron con los motores a 5 V. Con las 2 × 18650, el mismo PWM da más velocidad.
+**Para qué:** el feedforward del firmware tiene dos partes (loco-final-1.1):
+- **impulso de arranque** (`PWM_ARRANQUE_ADE/ATR`): PWM que hace falta para que cada rueda arranque desde reposo (con 2×18650: 105–165 según rueda y sentido);
+- **curva de mantenimiento** (`FF_RPM_ADE/ATR` sobre `FF_PWM` = 95..255): RPM que da cada PWM con la rueda ya girando. Por debajo de `PWM_PARADA` (~85) la rueda se detiene.
 
-**Montaje:** robot **levantado** sobre un soporte (las ruedas no tocan nada), batería de motores cargada. Tarda ~1.5 min.
+Ya están medidas (26 nov, robot levantado, baterías cargadas). Repetir solo si cambian los motores, los drivers o la alimentación.
 
-[P] `python3 calibrar.py ff`. Enter cuando lo pida. Aplica PWM de 60 a 255 en pasos de 15, primero hacia adelante y luego hacia atrás, en las 4 ruedas a la vez. Mide 1 s en cada paso.
+**Montaje:** robot **levantado**, ruedas libres, batería de motores cargada. Cada corrida tarda ~1.5 min.
 
-**Debes ver** líneas como `+ PWM 120 -> RPM   45.2   47.0   44.8   46.1`. Al final aparecen dos bloques `const float ...` y queda `ff.csv` (RPM de cada rueda por PWM y sentido).
+[P]
+```bash
+python3 calibrar.py ff                       # subiendo: arranque desde reposo
+python3 calibrar.py ff --bajando --paso 10   # bajando sin detener: curva de mantenimiento
+```
 
-**Qué hacer con el resultado:**
-1. Pega los dos bloques en `locomocion.ino` en lugar de `PWM_FF_FWD` y `RPM_REV`, y vuelve a cargar el firmware.
-2. Fíjate en el PWM más bajo con RPM > 0: es la zona muerta de cada motor.
-3. Si alguna rueda no llega a 120 RPM, baja `RPM_MAX` en el `.ino` y en `config.py`.
+Al final de cada una aparecen las constantes listas para pegar en `locomocion.ino`, y queda `ff.csv` o `ff_bajando.csv`.
 
-**Mándame:** `ff.csv`. Con eso ajusto un modelo mejor que la tabla de 3 puntos si hace falta.
+**Mándame:** la salida de las dos corridas.
 
 ### 5.2 Verificación del PI — `calibrar.py pi`
 

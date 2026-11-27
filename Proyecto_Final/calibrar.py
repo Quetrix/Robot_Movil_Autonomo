@@ -78,8 +78,7 @@ def cmd_ff(args):
         reg.vaciar(forzar=True)
         guardar_csv(reg, "ff_bajando.csv" if args.bajando else "ff.csv", ["sentido", "pwm", "rpm_FL", "rpm_FR", "rpm_RL", "rpm_RR"], filas)
         reg.cerrar()
-    if not args.bajando:
-        imprimir_ff(resultado)
+    imprimir_ff(resultado, args.bajando)
 
 
 def interpolar_pwm(tabla, rueda, rpm_obj):
@@ -90,25 +89,27 @@ def interpolar_pwm(tabla, rueda, rpm_obj):
     return None
 
 
-def imprimir_ff(res):
-    rpms = (80.0, 100.0, 120.0)
-    print("\n// Pegar en locomocion.ino (reemplaza las tablas):")
-    filas = []
-    for i in range(4):
-        v = [interpolar_pwm(res[1], i, r) for r in rpms]
-        filas.append("{%s}" % ", ".join("%.1ff" % x if x is not None else "255.0f /*no alcanza*/" for x in v))
-    print("const float PWM_FF_FWD[4][N_FF_FWD] = {\n  %s};" % ",\n  ".join(filas))
-    pwm_rev = (195, 210, 225, 240, 255)
-    filas = []
-    for i in range(4):
-        vals = []
-        for p in pwm_rev:
-            cerca = min(res[-1], key=lambda q: abs(q - p))
-            vals.append("%.2ff" % res[-1][cerca][i])
-        filas.append("{%s}" % ", ".join(vals))
-    print("const float RPM_REV[4][N_REV] = {\n  %s};" % ",\n  ".join(filas))
-    print("// Si alguna rueda no llega a 120 RPM hacia adelante, bajar RPM_MAX (firmware y config.py).")
-    print("// Para tener feedforward a baja velocidad, repetir con --desde 60 y revisar donde empieza a girar.")
+def imprimir_ff(res, bajando):
+    """Subiendo: PWM con que arranca cada rueda desde reposo (+15) -> PWM_ARRANQUE_*.
+    Bajando (--paso 10): RPM en movimiento en la rejilla FF_PWM = 95..255 -> FF_RPM_*."""
+    nombres = {1: "ADE", -1: "ATR"}
+    print("\n// Pegar en locomocion.ino (reemplaza las constantes del mismo nombre):")
+    if not bajando:
+        for sentido in (1, -1):
+            vals = []
+            for i in range(4):
+                arranca = [p for p in sorted(res[sentido]) if res[sentido][p][i] > 5]
+                vals.append("%d" % min(255, arranca[0] + 15) if arranca else "255 /*no arranca*/")
+            print("const float PWM_ARRANQUE_%s[4] = {%s};" % (nombres[sentido], ", ".join(vals)))
+        return
+    rejilla = list(range(95, 256, 10))
+    for sentido in (1, -1):
+        if any(p not in res[sentido] for p in rejilla):
+            print("// faltan PWM de la rejilla 95..255 (usar --paso 10 --desde 65)")
+            return
+        filas = ["{%s}" % ", ".join("%.1ff" % res[sentido][p][i] for p in rejilla) for i in range(4)]
+        print("const float FF_RPM_%s[4][N_FF] = {\n  %s};" % (nombres[sentido], ",\n  ".join(filas)))
+    print("// Revisar que cada fila crezca; PWM_PARADA = mayor PWM con RPM 0 al bajar.")
 
 
 # ------------------------------------------------------------------ seguimiento del PI

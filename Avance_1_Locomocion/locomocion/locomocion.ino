@@ -4,7 +4,8 @@
 //
 // Version derivada de _respaldo/locomocion_esp32_ir_frontal (Tarea 8).
 // Se conservan sin cambios: pinout (verificado 9 nov 2026), signos,
-// CPR, geometria, ganancias PI, feedforward, rampas y deteccion de stall.
+// CPR, geometria, ganancias PI, rampas y deteccion de stall.
+// 1.1 (26 nov): feedforward remedido con 2x18650 + impulso de arranque.
 // Se eliminaron: secuencia del Avance 1, giro 360, Tarea 5, comandos
 // W/S/A/D/R/H, parpadeos de LED y textos de ayuda.
 //
@@ -41,7 +42,7 @@
 #include <math.h>
 #include "soc/gpio_reg.h"
 
-const char VERSION[] = "loco-final-1.0";
+const char VERSION[] = "loco-final-1.1";
 
 // ============================================================
 // HARDWARE (cableado actual, verificado 9 nov 2026)
@@ -90,25 +91,38 @@ const float PWM_SLEW_NORMAL = 12.0f;   // PWM por ciclo
 const float PWM_SLEW_FRENO  = 35.0f;
 const float ACEL_RPM_S  = 650.0f;      // rampa de la referencia (igual al frenado original)
 const float RPM_REPOSO  = 3.0f;
-// Feedforward medido con los motores a 5 V (PowerBoost). Con 2x18650 hay que
-// volver a medirlo: Proyecto_Final/calibrar.py ff. FF_ESCALA permite un ajuste
-// global mientras tanto (1.0 = tabla original).
+// Feedforward medido el 26 nov con 2x18650, robot levantado (calibrar.py ff --bajando:
+// PWM de 255 hacia abajo sin detener las ruedas). Es la curva de MANTENIMIENTO: el PWM
+// que sostiene cada RPM con la rueda ya girando. Por debajo de PWM ~85 la rueda se detiene.
+// Para ARRANCAR desde reposo hace falta mucho mas (calibrar.py ff subiendo: 105..165
+// segun rueda y sentido): eso lo cubre el impulso de arranque (PWM_ARRANQUE_*).
 const float FF_ESCALA = 1.0f;
-const int N_FF_FWD = 3;
-const float RPM_FF_FWD[N_FF_FWD] = {80.0f, 100.0f, 120.0f};
-const float PWM_FF_FWD[4][N_FF_FWD] = {
-  {216.5f, 230.7f, 241.4f}, {220.2f, 233.7f, 245.3f},
-  {217.4f, 231.1f, 243.4f}, {218.3f, 231.1f, 242.6f}};
-const int N_REV = 5;
-const float PWM_REV[N_REV] = {195, 210, 225, 240, 255};
-const float RPM_REV[4][N_REV] = {
-  {70.34f, 79.30f, 104.26f, 132.82f, 158.99f}, {62.77f, 79.16f, 104.64f, 133.63f, 159.11f},
-  {75.79f, 82.54f, 105.85f, 134.24f, 159.60f}, {74.35f, 84.51f, 109.53f, 138.97f, 164.60f}};
+const int N_FF = 17;
+const float FF_PWM[N_FF] = {95, 105, 115, 125, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255};
+const float FF_RPM_ADE[4][N_FF] = {
+  {20.2f, 41.0f, 58.6f, 74.4f, 89.2f, 103.1f, 117.0f, 127.8f, 138.9f, 152.2f, 165.0f, 172.4f, 178.2f, 192.2f, 214.0f, 240.1f, 264.4f},
+  {16.6f, 37.1f, 54.4f, 69.6f, 83.9f, 98.1f, 110.6f, 121.0f, 131.6f, 144.2f, 156.0f, 160.4f, 163.6f, 177.1f, 197.9f, 222.9f, 244.2f},
+  {33.9f, 53.2f, 69.7f, 85.9f, 100.8f, 115.0f, 127.6f, 138.2f, 149.9f, 163.6f, 176.1f, 181.5f, 184.2f, 198.4f, 221.1f, 248.2f, 269.8f},
+  {22.6f, 39.1f, 54.1f, 69.2f, 83.4f, 98.3f, 110.7f, 121.0f, 133.4f, 146.8f, 157.7f, 161.4f, 166.7f, 183.9f, 209.2f, 236.4f, 257.6f}};
+const float FF_RPM_ATR[4][N_FF] = {
+  {25.5f, 44.6f, 60.9f, 76.6f, 90.9f, 105.0f, 118.4f, 129.9f, 140.2f, 152.7f, 166.6f, 174.3f, 176.1f, 189.2f, 211.9f, 239.0f, 260.1f},
+  {18.4f, 38.3f, 54.5f, 70.2f, 85.1f, 99.1f, 111.5f, 122.5f, 133.0f, 145.1f, 156.8f, 162.5f, 166.6f, 181.6f, 204.4f, 230.2f, 250.3f},
+  {23.0f, 44.2f, 61.2f, 76.8f, 92.2f, 106.2f, 118.3f, 128.7f, 140.4f, 154.2f, 165.9f, 169.5f, 173.3f, 188.0f, 210.3f, 236.1f, 260.0f},
+  {17.2f, 37.5f, 54.8f, 70.5f, 84.9f, 99.3f, 112.4f, 124.5f, 135.9f, 150.2f, 162.9f, 167.9f, 173.8f, 190.1f, 212.9f, 241.2f, 268.6f}};
+const float PWM_PARADA = 85.0f;      // por debajo, la rueda en movimiento se detiene
+// Impulso de arranque: PWM con que arranco cada rueda desde reposo (+15 de margen).
+// Se aplica sin rampa mientras la rueda esta quieta y la referencia no es cero, como
+// maximo IMPULSO_MAX_MS por intento; al moverse, vuelve el feedforward + PI.
+const float PWM_ARRANQUE_ADE[4] = {180, 180, 165, 180};
+const float PWM_ARRANQUE_ATR[4] = {120, 150, 180, 165};
+const float RPM_QUIETA = 5.0f;
+const uint32_t IMPULSO_MAX_MS = 250;
 
 // ============================================================
 // ESTADO
 // ============================================================
 volatile int32_t conteos[4] = {0, 0, 0, 0};
+uint32_t tImpulso[4] = {0, 0, 0, 0};   // inicio del impulso de arranque (0 = sin intento)
 volatile uint8_t estadoAnterior[4] = {0, 0, 0, 0};
 const int8_t TABLA[16] = {0, 1, -1, 0, -1, 0, 0, 1, 1, 0, 0, -1, 0, -1, 1, 0};
 portMUX_TYPE muxEncoder = portMUX_INITIALIZER_UNLOCKED;
@@ -241,32 +255,18 @@ void cinematica(float vx, float vy, float wz, float salida[4]) {
 float feedForward(int i, float ref) {
   float r = fabsf(ref);
   if (r < 1.0f) return 0;
+  const float *t = ref > 0 ? FF_RPM_ADE[i] : FF_RPM_ATR[i];
   float pwm;
-  if (ref > 0) {
-    if (r <= RPM_FF_FWD[0]) pwm = PWM_FF_FWD[i][0] * r / RPM_FF_FWD[0];
-    else {
-      pwm = PWM_FF_FWD[i][N_FF_FWD - 1];
-      for (int k = 0; k < N_FF_FWD - 1; k++)
-        if (r <= RPM_FF_FWD[k + 1]) {
-          float f = (r - RPM_FF_FWD[k]) / (RPM_FF_FWD[k + 1] - RPM_FF_FWD[k]);
-          pwm = PWM_FF_FWD[i][k] + f * (PWM_FF_FWD[i][k + 1] - PWM_FF_FWD[i][k]);
-          break;
-        }
-    }
-  } else {
-    if (r <= RPM_REV[i][0]) pwm = PWM_REV[0] * r / RPM_REV[i][0];
-    else {
-      pwm = 255.0f;
-      for (int k = 0; k < N_REV - 1; k++)
-        if (r <= RPM_REV[i][k + 1]) {
-          float f = (r - RPM_REV[i][k]) / (RPM_REV[i][k + 1] - RPM_REV[i][k]);
-          pwm = PWM_REV[k] + f * (PWM_REV[k + 1] - PWM_REV[k]);
-          break;
-        }
-    }
-    pwm = -pwm;
+  if (r <= t[0]) pwm = PWM_PARADA + (FF_PWM[0] - PWM_PARADA) * r / t[0];
+  else {
+    pwm = 255.0f;
+    for (int k = 0; k < N_FF - 1; k++)
+      if (r <= t[k + 1]) {
+        pwm = FF_PWM[k] + (r - t[k]) / (t[k + 1] - t[k]) * (FF_PWM[k + 1] - FF_PWM[k]);
+        break;
+      }
   }
-  return pwm * FF_ESCALA;
+  return (ref > 0 ? pwm : -pwm) * FF_ESCALA;
 }
 
 // ============================================================
@@ -303,6 +303,7 @@ void controlPI(float dt) {
     if (frenando) iTerm[i] = 0;   // al frenar, sin memoria integral (igual que el original)
     if (fabsf(ref) < 1.0f) {
       iTerm[i] = 0;
+      tImpulso[i] = 0;
       pwmAplicado[i] = acercar(pwmAplicado[i], 0.0f, slew);
       aplicarMotor(i, pwmAplicado[i]);
       continue;
@@ -317,6 +318,18 @@ void controlPI(float dt) {
       if ((u >= lo && u <= hi) || (u > hi && error < 0) || (u < lo && error > 0)) iTerm[i] = nuevoI;
     }
     float objetivo = limitar(ff + p + iTerm[i], lo, hi);
+    // Impulso de arranque: la rueda quieta no arranca con el PWM de mantenimiento.
+    if (!frenando && fabsf(rpmFiltrada[i]) < RPM_QUIETA) {
+      if (tImpulso[i] == 0) tImpulso[i] = millis();
+      float a = ref > 0 ? PWM_ARRANQUE_ADE[i] : -PWM_ARRANQUE_ATR[i];
+      if (millis() - tImpulso[i] < IMPULSO_MAX_MS && fabsf(a) > fabsf(objetivo)) {
+        pwmAplicado[i] = a;          // sin rampa
+        aplicarMotor(i, a);
+        continue;
+      }
+    } else {
+      tImpulso[i] = 0;
+    }
     pwmAplicado[i] = acercar(pwmAplicado[i], objetivo, slew);
     aplicarMotor(i, pwmAplicado[i]);
   }
