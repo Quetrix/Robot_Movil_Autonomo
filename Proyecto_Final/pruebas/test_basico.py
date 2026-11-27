@@ -138,16 +138,16 @@ class Conos(unittest.TestCase):
 
 class Aruco(unittest.TestCase):
     def test_detecta_y_ubica(self):
-        dic = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        dic = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_ARUCO_ORIGINAL)   # el de la prueba
         gen = cv2.aruco.generateImageMarker if hasattr(cv2.aruco, "generateImageMarker") else cv2.aruco.drawMarker
-        marca = gen(dic, 7, 120)
+        marca = gen(dic, 1, 120)
         img = np.full((480, 640), 255, np.uint8)
         img[180:300, 260:380] = marca
         m = vision.ModeloCamara(640, 480, 60, inclinacion_deg=0, altura_m=0.26)
         a = vision.Aruco(m, lado=0.10)
         r = a.detectar(img)
         self.assertIsNotNone(r)
-        self.assertEqual(r["id"], 7)
+        self.assertEqual(r["id"], 1)
         f = m.f
         self.assertAlmostEqual(r["x"] - m.x0, 0.10 * f / 120, delta=0.02)   # distancia por tamano aparente
         self.assertLess(r["normal"][0], -0.9)                             # apunta hacia el robot (-X)

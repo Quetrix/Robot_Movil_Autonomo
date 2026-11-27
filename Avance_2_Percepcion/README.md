@@ -9,7 +9,7 @@ Funcionamiento:
 - **Sharp.** Se leen a 25 Hz, con la mediana de 5 lecturas del ADC. Se convierten con la curva genérica d = 29.988·V^−1.173 cm hasta tener las tablas medidas (`calibrar.py sharp`).
 - **Arranque y enlace.** No hay movimiento hasta que la Pi manda `B` o `F`. Si pasan 3 s sin ninguna línea de la Pi, el cabezal vuelve al centro.
 
-Para probarlo sin la Pi: monitor serial a **230400** baud, `B,60,150` para barrer, `F,0` para dejarlo al centro y `R` para quitar la señal del servo. El monitor muestra las tramas `T`, `S` y `D`. Escriban cualquier línea cada menos de 3 s, porque si no el cabezal vuelve al centro.
+Para probarlo sin la Pi: monitor serial a **115200** baud, `B,60,150` para barrer, `F,0` para dejarlo al centro y `R` para quitar la señal del servo. El monitor muestra las tramas `T`, `S` y `D`. Escriban cualquier línea cada menos de 3 s, porque si no el cabezal vuelve al centro.
 
 Pendientes de calibración (marcados `[CALIBRAR]` en el código):
 

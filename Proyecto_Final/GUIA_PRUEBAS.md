@@ -25,36 +25,9 @@ Reglas:
 2. Un ESP32 va conectado a la Pi **o** a la laptop, no a las dos.
 3. **Los motores necesitan su batería (2 × 18650) aunque el ESP32 esté en la laptop.** El USB solo alimenta la lógica.
 
-### Si la Pi no está en tu red WiFi actual
+### Red de la Pi
 
-Sin red común no hay SSH, así que la red nueva se agrega **en la Pi misma**: monitor HDMI (micro-HDMI en la Pi 5) y teclado, iniciar sesión como `fede`, y en la terminal:
-
-```bash
-sudo nmcli dev wifi list                                  # ver las redes visibles
-sudo nmcli dev wifi connect "NOMBRE_DE_LA_RED" password "CLAVE"
-hostname -I                                               # anota la IP
-```
-
-Aprovecha que tienes monitor y crea también el hotspot del robot (comandos de abajo). Así no vuelves a depender de una red. Alternativa sin monitor: crea en el celular un hotspot con **el mismo nombre y clave** que la red original de la Pi; se conecta sola y entras por SSH con la laptop conectada a ese hotspot.
-
-### WiFi entre la laptop y la Pi (importante)
-
-Antes se entraba por la red `Percepcion-ESP32`, que creaba el ESP32 del cabezal. **Esa red ya no existe**, porque los ESP32 no usan WiFi. Hay que darle a la Pi su propia red. Se configura una vez, con la Pi todavía en la red de tu casa.
-
-[P]
-```bash
-sudo nmcli con add type wifi ifname wlan0 con-name robot-ap autoconnect yes ssid Robot-MT9005 \
-  802-11-wireless.mode ap 802-11-wireless.band bg ipv4.method shared ipv4.addresses 192.168.50.1/24 \
-  wifi-sec.key-mgmt wpa-psk wifi-sec.psk "mt9005robot"
-sudo nmcli con modify robot-ap connection.autoconnect-priority 0
-nmcli -f NAME,TYPE con show            # busca el nombre de la red de tu casa
-sudo nmcli con modify "<red de tu casa>" connection.autoconnect-priority 10
-```
-
-Con estas prioridades, en tu casa la Pi se conecta a tu WiFi (con internet para `git pull`). En la universidad, donde no ve tu red, crea `Robot-MT9005` sola al encender.
-
-- Para entrar desde la laptop en la universidad: conecta la laptop al WiFi `Robot-MT9005` (clave `mt9005robot`), y luego [L] `ssh fede@192.168.50.1`.
-- Para forzar el modo hotspot en casa: [P] `sudo nohup nmcli con up robot-ap >/dev/null 2>&1 &`. El SSH se corta; conecta la laptop a `Robot-MT9005` y entra por `192.168.50.1`.
+Cómo conectarse a la Pi, cómo agregar una red WiFi propia y cómo funciona el hotspot de respaldo `Robot-MT9005`: ver [`ESTADO.md`](../ESTADO.md#red-de-la-pi-y-ssh), sección "Red de la Pi y SSH". Las claves no están en el repo (es público); las pasa el equipo por privado.
 
 ## 1. Preparación (una vez)
 
@@ -64,7 +37,7 @@ Con estas prioridades, en tu casa la Pi se conecta a tu WiFi (con internet para 
 ```powershell
 cd C:\Users\esteb\Documents\Projects\Robot_Movil_Autonomo
 git fetch
-git checkout final-limpieza
+git checkout main
 git pull
 pip install pyserial opencv-contrib-python numpy
 ```
@@ -72,7 +45,7 @@ pip install pyserial opencv-contrib-python numpy
 [L] `ssh fede@robo-pi-5.local` (o `fede@192.168.50.1` en el hotspot). Luego [P]:
 ```bash
 cd ~/Robot_Movil_Autonomo
-git fetch && git checkout final-limpieza && git pull
+git fetch && git checkout main && git pull
 cd Proyecto_Final
 sudo apt install -y python3-opencv python3-serial python3-numpy
 python3 -m unittest discover pruebas
@@ -83,9 +56,9 @@ python3 -m unittest discover pruebas
 
 1. Conecta el ESP32 de **locomoción** a la laptop por USB.
 2. Abre `Avance_1_Locomocion/locomocion/locomocion.ino`. Elige la placa "ESP32 Dev Module" (core esp32 3.x) y su puerto, y súbelo.
-3. Abre el Monitor Serie a **230400** baud.
+3. Abre el Monitor Serie a **115200** baud.
    - **Debes ver:** cada 20 ms una línea `L,123,4567,0,0,0,0,0,0,0,0,0,0,0,0,0*3A`.
-   - Escribe `?` y Enter. **Debes ver:** `I,LOCO,loco-final-1.0*..`.
+   - Escribe `?` y Enter. **Debes ver:** `I,LOCO,loco-final-1.1*..` (versión vigente: ver `ESTADO.md`).
 4. Cierra el Monitor Serie. Repite con `Avance_2_Percepcion/percepcion/percepcion.ino`.
    - **Debes ver:** líneas `T,...` (100 por segundo) y `S,...`, y al arrancar `# TF-Luna listo (continuo 100 Hz)`.
    - Si dice `TF-Luna SIN DATOS`: revisa SDA (21), SCL (22), el pin 5 del TF a GND y el pin 6 a GPIO27.
@@ -142,7 +115,7 @@ sudo systemctl disable --now ModemManager 2>/dev/null
 **Prueba directa, sin los scripts del proyecto** [P], para cada puerto (`/dev/ttyUSB0` y `/dev/ttyUSB1`):
 
 ```bash
-stty -F /dev/ttyUSB0 230400 raw -echo
+stty -F /dev/ttyUSB0 115200 raw -echo
 timeout 3 cat /dev/ttyUSB0 | head -c 400; echo
 ```
 
@@ -293,7 +266,7 @@ Recarga el firmware y repite hasta quedar a ±1–2°. `python3 diagnostico.py s
 - `Borde estatico en x.xx grados (salto NNN mm)`: el salto debería ser de cientos de mm;
 - después, `LAG antihorario NN ms, horario NN ms`.
 
-**Probar el resultado:** [P] `python3 diagnostico.py servo Z <ccw> <cw>`. Luego repite `calibrar.py lag`: sin reflashear, la segunda corrida debe dar el borde barriendo a ±1–2° del estático. Cuando quede bien, fija los valores en `percepcion.ino` (`lagCcwMs`, `lagCwMs`) y recarga.
+**Probar el resultado:** fija los valores en `percepcion.ino` (`lagCcwMs`, `lagCwMs`), recarga y repite `calibrar.py lag`: la segunda corrida debe dar el borde barriendo a ±1–2° del estático. (`diagnostico.py servo Z` no sirve para esto: cada programa que abre el puerto reinicia el ESP32 y el valor se pierde.)
 
 **Mándame:** `lag.csv` (muestras estáticas, subiendo y bajando).
 

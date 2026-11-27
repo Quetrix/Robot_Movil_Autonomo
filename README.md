@@ -4,6 +4,8 @@ Proyecto final de MT9005 — Simulación de Procesos Industriales Robotizados (I
 
 El robot holonómico con ruedas Mecanum debe ir desde el aula de origen hasta el laboratorio F3-03 pasando entre pares de conos naranjas (puertas de 50 cm), esquivar obstáculos no mapeados y estacionarse sobre un marcador ArUco con la orientación indicada. Una vez arrancado, no se permite ninguna intervención.
 
+> **Estado actual, checklist, conexión con la Pi y bitácora de pruebas: [`ESTADO.md`](ESTADO.md).** Empezar por ahí.
+
 ## Arquitectura
 
 ```

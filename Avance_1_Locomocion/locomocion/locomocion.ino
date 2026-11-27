@@ -13,7 +13,7 @@
 //   X adelante, Y izquierda, giro antihorario positivo.
 // Ruedas: 0 = FL, 1 = FR, 2 = RL, 3 = RR.
 //
-// Protocolo (230400 baud, lineas ASCII terminadas en \n). Detalle en
+// Protocolo (115200 baud, lineas ASCII terminadas en \n). Detalle en
 // Proyecto_Final/README.md. Sufijo opcional *HH = XOR de los bytes
 // antes de '*', en hexadecimal; si viene, se verifica.
 //   Pi -> ESP32

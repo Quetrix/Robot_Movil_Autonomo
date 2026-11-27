@@ -45,17 +45,17 @@ CAMARA_ANCHO, CAMARA_ALTO = 640, 480   # 4:3 = campo vertical completo del IMX21
 CAMARA_FPS = 30
 CAMARA_PROCESAR_HZ = 15       # cuadros analizados por segundo (ahorra CPU)
 CAMARA_FOV_H_DEG = 60.0       # [MEDIR] calibrar.py camara (objeto de ancho conocido)
-CONO_ALTO_M = 0.18            # enunciado: ~18 cm [MEDIR] el cono real
+CONO_ALTO_M = 0.235           # medido en los conos de la prueba (26 nov); el enunciado decia ~18 cm
 CONO_SEPARACION_M = 0.50      # puertas de 50 cm
 CONO_SEPARACION_TOL_M = 0.22
-ARUCO_LADO_M = 0.10           # [MEDIR] no se conoce el marcador
-ARUCO_DICCIONARIOS = ("DICT_4X4_50", "DICT_5X5_100", "DICT_6X6_250", "DICT_ARUCO_ORIGINAL")
+ARUCO_LADO_M = 0.10           # [MEDIR] lado del cuadro negro; ~10 cm estimado de la foto (media hoja carta)
+ARUCO_DICCIONARIOS = ("DICT_ARUCO_ORIGINAL",)   # marcador de la prueba: ORIGINAL, ID 1 (foto del 26 nov)
 ARUCO_CADA_N_CUADROS = 3      # fuera de la fase final se busca ArUco solo 1 de cada N
 
 # ---------------------------------------------------------------- navegacion
 ROBOT_ANCHO_M = 0.20          # con ruedas [MEDIR]
 ROBOT_LARGO_M = 0.20
-V_CRUCERO = 0.20              # ~80 RPM de rueda
+V_CRUCERO = 0.20              # ~66 RPM de rueda (radio 0.029)
 V_CRUCE = 0.15
 V_APROX = 0.08
 W_MAX = math.radians(60)

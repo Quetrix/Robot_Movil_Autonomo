@@ -1,6 +1,6 @@
 # Fase final: estado, decisiones y revisión crítica (23 nov 2026)
 
-Revisión de `main` + rama `geometria-montaje-final` y del código de `Pruebas/Deteccion_Conos` (solo probado en Windows). El resultado está en la rama `final-limpieza`. Uso y plan de pruebas: [`Proyecto_Final/README.md`](../Proyecto_Final/README.md).
+Revisión de `main` + rama `geometria-montaje-final` y del código de `Pruebas/Deteccion_Conos` (solo probado en Windows). El resultado se trabajó en la rama `final-limpieza` y se unió a `main` el 26 nov. Uso y plan de pruebas: [`Proyecto_Final/README.md`](../Proyecto_Final/README.md).
 
 ## 1. Lo que había
 
@@ -34,7 +34,7 @@ Revisión de `main` + rama `geometria-montaje-final` y del código de `Pruebas/D
 ## 2. Decisiones
 
 1. **ESP32 sin WiFi; el diagnóstico se hace en la Pi.** Se quitaron el panel web, el JSON y la fusión. La Pi graba cada línea del USB y muestra un panel por SSH (`diagnostico.py monitor`). En locomoción también evita el error de silicio de GPIO36/39 (encoder RR) que aparece con el radio encendido.
-2. **Protocolo ASCII con checksum a 230400 baud.** Carga ~20 %. Se puede leer y escribir a mano desde el monitor serial.
+2. **Protocolo ASCII con checksum a 115200 baud** (al inicio 230400; se bajó el 26 nov porque corrompía bytes). Carga ~45 %. Se puede leer y escribir a mano desde el monitor serial.
 3. **Locomoción en la convención del enunciado:** `V,vx,vy,wz` en mm/s, mm/s y °/s con X adelante, Y izquierda y giro antihorario. Responde con conteos acumulados, referencias, PWM y flags a 50 Hz. Se conservaron sin cambios pinout, signos, CPR, ganancias, feedforward, rampas y stall. Cambios en el control: la referencia sube y baja con la rampa de 650 RPM/s (antes saltaba al subir), y el IR frontal recorta solo la componente hacia adelante.
 4. **Botón = armar/desarmar en el ESP32 de locomoción.** El paro de emergencia no depende de la Pi.
 5. **Watchdog de 500 ms en locomoción.** Es una desviación deliberada de "si no se recibe nada se sigue con los valores previos". Si la Pi o el USB fallan, el robot frena en vez de seguir a ciegas. Si el profesor exige la conducta literal, basta con subir `WATCHDOG_MS`, pero conviene defender la decisión en el informe.

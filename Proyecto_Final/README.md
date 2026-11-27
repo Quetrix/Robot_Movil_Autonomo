@@ -8,7 +8,7 @@ Navegación, visión, odometría, diagnóstico y grabación de datos para la pru
  Arducam USB ─────────▶ Raspberry Pi 5 ◀──── SSH por WiFi (laptop)
                         robot.py: visión + falda + odometría + navegación + registro
                 ┌────────────┴─────────────┐
-   USB 230400 ↕ V vx vy wz (20 Hz)           USB 230400 ↕ B / F / K
+   USB 115200 ↕ V vx vy wz (20 Hz)           USB 115200 ↕ B / F / K
    L: conteos, ref, PWM, flags (50 Hz)       T: TF-Luna (100 Hz)  S: Sharp + IR trasero (25 Hz)
  ESP32 LOCOMOCIÓN (L1)                      ESP32 PERCEPCIÓN (L3)
  4 motores + encoders, PI + FF,             servo MG996R (barrido continuo), TF-Luna,
@@ -66,7 +66,7 @@ El botón del robot (en el ESP32 de locomoción) alterna **armado / desarmado**.
 
 ## Protocolo serial
 
-230400 baud, líneas ASCII terminadas en `\n`, sufijo `*HH` = XOR de todos los bytes anteriores en hexadecimal. Las tramas que salen de los ESP32 siempre lo llevan. En los comandos es opcional, para poder escribirlos a mano en el monitor serial. Si el sufijo viene, se verifica. Las líneas que empiezan con `#` son texto para humanos. Cada tipo de trama lleva un número de secuencia propio, así que la Pi cuenta las tramas perdidas.
+115200 baud, líneas ASCII terminadas en `\n`, sufijo `*HH` = XOR de todos los bytes anteriores en hexadecimal. Las tramas que salen de los ESP32 siempre lo llevan. En los comandos es opcional, para poder escribirlos a mano en el monitor serial. Si el sufijo viene, se verifica. Las líneas que empiezan con `#` son texto para humanos. Cada tipo de trama lleva un número de secuencia propio, así que la Pi cuenta las tramas perdidas.
 
 **Pi → locomoción**
 
@@ -107,7 +107,7 @@ flags de `L`: bit0 armado, bit1 IR frontal con obstáculo, bit2 parado por watch
 | `S` (25 Hz) | seq, ms, Sharp izq [mm], der [mm], izq [mV], der [mV], IR trasero (1 = obstáculo). 0 mm = nada entre 100 y 800 mm |
 | `D` (1 Hz) | seq, ms, lazo máx [µs], RX malas, TX descartadas, errores I2C, lecturas TF válidas en el último segundo, modo (0 sin señal, 1 fijo, 2 barrido) |
 
-Carga del enlace: ~5 kB/s cada uno, ~20 % de 230400 baud. Si el buffer de salida del ESP32 se llena, la trama se descarta entera y se cuenta, y el lazo de control nunca espera al USB.
+Carga del enlace: ~5 kB/s cada uno, ~45 % de 115200 baud (se bajó de 230400 porque corrompía bytes en percepción). Si el buffer de salida del ESP32 se llena, la trama se descarta entera y se cuenta, y el lazo de control nunca espera al USB.
 
 ## Pinout final
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=Hotspot robot-ap solo si no hay una red WiFi guardada disponible
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/red_respaldo.sh
+
+[Install]
+WantedBy=multi-user.target

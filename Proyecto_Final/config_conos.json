@@ -5,7 +5,7 @@
   "fps": 15,
   "autofoco": true,
   "fov_horizontal_grados": 60.0,
-  "alto_cono_m": 0.18,
+  "alto_cono_m": 0.235,
   "hsv_min": [
     177,
     45,

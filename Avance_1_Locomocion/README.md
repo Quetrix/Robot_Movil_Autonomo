@@ -4,7 +4,7 @@
 
 Se compila en Arduino IDE con el core **esp32 3.x** y la placa "ESP32 Dev Module", sin librerías externas. Probado con el core 3.3.2: sin advertencias, 24 % de la flash.
 
-Para probarlo sin la Pi: abrir el monitor serial a **230400** baud, escribir `A,1` (armar) y luego `V,100,0,0` (adelante a 100 mm/s), `V,0,100,0` (izquierda) o `V,0,0,45` (giro antihorario). Si no se repite el `V`, el robot frena solo a los 0.5 s. `X` para.
+Para probarlo sin la Pi: abrir el monitor serial a **115200** baud, escribir `A,1` (armar) y luego `V,100,0,0` (adelante a 100 mm/s), `V,0,100,0` (izquierda) o `V,0,0,45` (giro antihorario). Si no se repite el `V`, el robot frena solo a los 0.5 s. `X` para.
 
 Respecto a la versión de la Tarea 8 (`_respaldo/locomocion_esp32_ir_frontal`) se conservaron pinout, signos, CPR, geometría, ganancias PI, feedforward, rampas y detección de stall. Cambió:
 
