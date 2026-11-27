@@ -17,7 +17,6 @@ Marcas: ✅ hecho y verificado · 🟡 hecho sin verificar · ⬜ pendiente · �
 - ✅ `usb_max_current_enable=1` en la Pi; `diagnostico.py salud` → `throttled=0x0` con todo conectado.
 - ✅ Prueba de esfuerzo (sección 3 de la guía): `teleop` 4.3 min, servo barriendo y motores girando, sin pérdidas ni reinicios.
 - ⬜ Instalar el script de red de respaldo en la Pi (ver [Red de la Pi](#red-de-la-pi-y-ssh)) y comprobarlo en dos lugares: uno con red conocida y otro sin ella.
-- ⬜ Cambiar la clave del hotspot `Robot-MT9005`: la anterior estuvo publicada en este repo.
 - ⬜ Definir cómo arranca `robot.py` en la prueba sin laptop conectada. Hoy muere si se cierra el SSH (no maneja SIGHUP). Opciones: `nohup` o un servicio systemd que lo arranque y espere el botón.
 
 ### Locomoción
