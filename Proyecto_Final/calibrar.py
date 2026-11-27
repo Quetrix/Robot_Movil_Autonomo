@@ -49,6 +49,10 @@ def cmd_ff(args):
     pwms = list(range(args.desde, 256, args.paso))
     if pwms[-1] != 255:
         pwms.append(255)
+    if args.bajando:
+        # De 255 hacia abajo sin detener las ruedas: mide la friccion en movimiento (la rueda
+        # sigue girando con menos PWM del que necesita para arrancar) y el PWM donde se detiene.
+        pwms = list(range(255, args.desde - 1, -args.paso))
     resultado = {1: {}, -1: {}}
     filas = []
     try:
@@ -72,9 +76,10 @@ def cmd_ff(args):
         loco.parar()
         loco.enviar("A", 0)
         reg.vaciar(forzar=True)
-        guardar_csv(reg, "ff.csv", ["sentido", "pwm", "rpm_FL", "rpm_FR", "rpm_RL", "rpm_RR"], filas)
+        guardar_csv(reg, "ff_bajando.csv" if args.bajando else "ff.csv", ["sentido", "pwm", "rpm_FL", "rpm_FR", "rpm_RL", "rpm_RR"], filas)
         reg.cerrar()
-    imprimir_ff(resultado)
+    if not args.bajando:
+        imprimir_ff(resultado)
 
 
 def interpolar_pwm(tabla, rueda, rpm_obj):
@@ -330,6 +335,7 @@ def main():
     f = sub.add_parser("ff")
     f.add_argument("--desde", type=int, default=60, help="PWM inicial (bajo, para ver la zona muerta)")
     f.add_argument("--paso", type=int, default=15)
+    f.add_argument("--bajando", action="store_true", help="de 255 hacia abajo sin detener (zona muerta en movimiento)")
     f.set_defaults(fn=cmd_ff)
     q = sub.add_parser("pi")
     q.add_argument("--segundos", type=float, default=3.0)
